@@ -1,0 +1,210 @@
+# ROTEIRO DETALHADO - SEMANA 3
+### WORKSHOP 1: PROJETO DE VPC E REDE
+#### MODELO DE CASOS DE USO ARQUITETURAIS
+##### CASE "SWIFTTRACK IOT" COMO EXEMPLO CENTRAL
+
+---
+
+## 1. OBJETIVOS DA SEMANA
+
+### 1.1. Objetivo Geral
+
+Capacitar os alunos a projetar e documentar uma arquitetura de rede na AWS (VPC) para o case SwiftTrack IoT, utilizando a estrutura de Casos de Uso do RUP/UP como ferramenta de modelagem e traduzindo requisitos de segurança e disponibilidade em decisões arquiteturais.
+
+### 1.2. Objetivos Específicos
+- Compreender os componentes de uma VPC AWS e suas interações no contexto de uma arquitetura híbrida (serverless + IaaS).
+- Modelar casos de uso arquiteturais para infraestrutura de rede da SwiftTrack.
+- Projetar uma VPC com sub-redes públicas e privadas distribuídas em múltiplas Zonas de Disponibilidade, considerando a separação entre a API administrativa (EC2) e a ingestão serverless (Lambda).
+- Definir tabelas de roteamento, Internet Gateway, NAT Gateway, VPC Endpoints e Security Groups.
+- Documentar as decisões de projeto com justificativas técnicas e de custo, alinhadas ao Documento de Visão e Requisitos Suplementares.
+
+---
+
+## 2. ESTRUTURA DA AULA (4 HORAS)
+
+| **Horário** | **Atividade** | **Duração** | **Tipo** |
+| :--- | :--- | :--- | :--- |
+| 09:00 - 09:15 | Abertura: Conexão com a Semana Anterior | 15 min | Expositiva/Interativa |
+| 09:15 - 10:00 | Teoria: VPC AWS e Casos de Uso Arquiteturais | 45 min | Expositiva com Exemplos |
+| 10:00 - 10:45 | Estudo de Caso: Arquitetura de Rede para SwiftTrack | 45 min | Análise em Grupo |
+| 10:45 - 11:00 | Intervalo | 15 min | - |
+| 11:00 - 11:40 | Exercício Prático: Projeto de VPC para SwiftTrack | 40 min | Hands-on em Grupo |
+| 11:40 - 12:15 | Preenchimento do Modelo de Casos de Uso | 35 min | Hands-on Guiado |
+| 12:15 - 12:45 | Apresentação dos Resultados e Discussão | 30 min | Pitch e Feedback |
+| 12:45 - 13:00 | Encerramento, Dúvidas e Orientações para Entrega | 15 min | Sessão Final |
+
+---
+
+## 3. DESENVOLVIMENTO DETALHADO
+
+---
+
+### 3.1. ABERTURA: CONEXÃO COM A SEMANA ANTERIOR (15 min)
+
+**Tema:** "Dos Requisitos à Rede - O Desafio da SwiftTrack"
+
+#### 3.1.1. Revisão Rápida - "O que a SwiftTrack precisa?" (5 min)
+
+**Dinâmica:** Os alunos recebem um **quiz rápido** com perguntas baseadas no Documento de Requisitos Suplementares da SwiftTrack:
+
+| **Pergunta** | **Resposta Correta** |
+| :--- | :--- |
+| "Qual a disponibilidade exigida para a API de faturamento?" | 99,95% |
+| "Qual a latência máxima para ingestão de telemetria?" | 80ms |
+| "Qual o RPO exigido para dados do DynamoDB?" | 15 minutos |
+| "Qual serviço AWS será usado para a ingestão serverless?" | Lambda + API Gateway |
+| "Qual o orçamento mensal máximo?" | US$ 1.500 |
+
+**Objetivo:** Conectar os requisitos não-funcionais às decisões de arquitetura de rede.
+
+#### 3.1.2. Contextualização do Tema - "Por que a VPC é crítica para a SwiftTrack?" (10 min)
+
+**Slide de Abertura:**
+
+```plantuml
+@startuml
+title Dos requisitos a VPC - SwiftTrack IoT
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+rectangle "Requisitos da SwiftTrack" as requisitos {
+   rectangle "API administrativa\nem EC2 (IaaS)" as api
+   rectangle "Ingestao serverless\nLambda + API Gateway" as ingestao
+   rectangle "RDS Multi-AZ\nDados transacionais" as rds
+   rectangle "DynamoDB\nDados de telemetria" as dynamo
+   rectangle "S3 + CloudFront\nMidias estaticas" as s3
+}
+
+rectangle "VPC segura e eficiente" as vpc {
+   rectangle "Isolamento de dados\nsensiveis (LGPD)" as isolamento
+   rectangle "Comunicacao segura\nentre servicos" as comunicacao
+   rectangle "Escalabilidade\n10.000 veiculos" as escala
+   rectangle "Custo otimizado\nUS$ 1.500/mes" as custo
+}
+
+api --> isolamento
+ingestao --> comunicacao
+rds --> isolamento
+dynamo --> comunicacao
+s3 --> custo
+requisitos --> vpc : traduzir requisitos
+@enduml
+```
+
+**Momento Interativo:**
+> *"Observem os serviços AWS da SwiftTrack. Quais vocês acham que devem ficar em sub-redes públicas e quais em sub-redes privadas? Por quê?"*
+
+**Respostas Esperadas:**
+- **EC2 (API):** Pode ficar em sub-rede privada, com acesso via Load Balancer público.
+- **RDS (PostgreSQL):** Deve ficar em sub-rede privada (dados sensíveis).
+- **Lambda:** Não fica em VPC (serverless), mas pode acessar recursos via VPC.
+- **S3:** Serviço público, mas com políticas de acesso restritas.
+
+---
+
+### 3.2. TEORIA: VPC AWS E CASOS DE USO ARQUITETURAIS (45 min)
+
+**Tema:** "O que é uma VPC e como modelamos suas decisões?"
+
+#### 3.2.1. Componentes de uma VPC - Aplicados à SwiftTrack (20 min)
+
+| **Componente** | **O que é?** | **Como se aplica à SwiftTrack?** |
+| :--- | :--- | :--- |
+| **VPC** | Rede virtual privada na AWS, logicamente isolada. | CIDR: 10.0.0.0/16 (espaço para crescimento). |
+| **Sub-redes Públicas** | Sub-redes com rota para Internet Gateway. | Para Load Balancer (ALB) que expõe a API. |
+| **Sub-redes Privadas** | Sub-redes sem rota direta para Internet. | Para EC2 (API), RDS (banco), instâncias de processamento. |
+| **Internet Gateway (IGW)** | Permite comunicação da VPC com a Internet. | Anexado à VPC para acesso público ao ALB. |
+| **NAT Gateway** | Permite que instâncias privadas acessem a Internet (atualizações, patches). | Para EC2 em sub-rede privada fazer downloads. |
+| **VPC Endpoints** | Conexão privada entre VPC e serviços AWS (sem Internet). | **Critical para SwiftTrack:** DynamoDB, S3 e Secrets Manager acessados sem sair da VPC. |
+| **Route Tables** | Tabelas de roteamento que definem o tráfego. | Pública: 0.0.0.0/0 → IGW. Privada: 0.0.0.0/0 → NAT. |
+| **Security Groups** | Firewall a nível de instância (regras de entrada/saída). | SG-Web (portas 80, 443), SG-API (porta 8000), SG-DB (porta 5432). |
+| **Network ACLs (NACLs)** | Firewall a nível de sub-rede (regras numeradas). | Camada extra de segurança para sub-redes privadas. |
+
+**Slide Ilustrativo - Arquitetura de Rede SwiftTrack:**
+
+```plantuml
+@startuml
+title Arquitetura de rede SwiftTrack - VPC 10.0.0.0/16
+left to right direction
+skinparam shadowing false
+skinparam componentStyle rectangle
+
+cloud "Internet" as internet
+cloud "Servicos AWS" as aws {
+   component "DynamoDB" as dynamodb
+   component "S3" as s3
+   component "Secrets Manager" as secrets
+}
+
+rectangle "VPC 10.0.0.0/16" as vpc {
+   component "Internet Gateway" as igw
+
+   package "us-east-1a" as azA {
+      rectangle "Subnet publica\n10.0.1.0/24" as publicA {
+         component "ALB" as albA
+         component "NAT Gateway" as natA
+      }
+      rectangle "Subnet privada\n10.0.3.0/24" as privateA {
+         component "EC2 API" as ec2A
+         component "RDS Primary" as rdsA
+      }
+   }
+
+   package "us-east-1b" as azB {
+      rectangle "Subnet publica\n10.0.2.0/24" as publicB {
+         component "ALB" as albB
+         component "NAT Gateway" as natB
+      }
+      rectangle "Subnet privada\n10.0.4.0/24" as privateB {
+         component "EC2 API" as ec2B
+         component "RDS Standby" as rdsB
+      }
+   }
+
+   rectangle "VPC Endpoints" as endpoints {
+      component "DynamoDB Gateway" as dynamodbEndpoint
+      component "S3 Interface" as s3Endpoint
+      component "Secrets Manager Interface" as secretsEndpoint
+   }
+
+   rectangle "Route Tables" as routes {
+      component "Publica\n0.0.0.0/0 -> IGW" as publicRoute
+      component "Privada\n0.0.0.0/0 -> NAT" as privateRoute
+   }
+
+   rectangle "Security Groups" as security {
+      component "SG-ALB\n80, 443" as sgAlb
+      component "SG-EC2-API\n8000" as sgApi
+      component "SG-RDS\n5432" as sgRds
+   }
+}
+
+internet --> igw
+igw --> albA
+igw --> albB
+albA --> ec2A
+albB --> ec2B
+ec2A --> rdsA
+ec2B --> rdsB
+ec2A --> natA
+ec2B --> natB
+ec2A --> dynamodbEndpoint
+ec2A --> s3Endpoint
+ec2A --> secretsEndpoint
+ec2B --> dynamodbEndpoint
+ec2B --> s3Endpoint
+ec2B --> secretsEndpoint
+dynamodbEndpoint --> dynamodb
+s3Endpoint --> s3
+secretsEndpoint --> secrets
+publicRoute --> igw
+privateRoute --> natA
+privateRoute --> natB
+sgAlb ..> albA
+sgAlb ..> albB
+sgApi ..> ec2A
+sgApi ..> ec2B
+sgRds ..> rdsA
+sgRds ..> rdsB
+@enduml
