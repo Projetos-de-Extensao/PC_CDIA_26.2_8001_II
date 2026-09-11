@@ -14,17 +14,6 @@ nav:
         - Documento de Visão Preenchido: Disciplina/roteiros/Iniciacao/dv_template_preenchido.md
         - Requisitos Suplementares: Disciplina/roteiros/Iniciacao/requisitos_suplementares.md
         - Casos de Uso Arquiteturais: Disciplina\roteiros\Iniciacao\casos_uso_arquiteturais.md
-        #- Plan3: Disciplina/roteiros/Iniciacao/plan3casetemplate.md
-#      - Ambiente: Disciplina/ambiente.md
-#      - Roteiro:
-#        - 01- AWS: Disciplina/roteiros/02 - aws.md
-#        - 04 - EC2: Disciplina/roteiros/04 - ec2.md
-#        - 04 - Linux Bash: Disciplina/roteiros/04 - linux.md
-#        - 05 - Nginx: Disciplina/roteiros/05 - nginxsite.md
-#        - 06 - S3: Disciplina/roteiros/06 - s3.md
-#        - 07 - BE: Disciplina/roteiros/07 - eb.md
-#        - 10 - Aurora RDS: Disciplina/roteiros/10 - aurora.md
-#        - 12 - EB MySQL: Disciplina/roteiros/12 - ebmysql.md
   - Iniciação: 
     - Index: Iniciacao/index.md
     - Documento de Visão Preenchido: Iniciacao/dv.md
@@ -32,6 +21,10 @@ nav:
   - Elaboração: 
     - Index: Elaboracao/index.md
     - Casos de Uso Arquiteturais: Elaboracao/cua.md
+  - Construção:
+    - Index: Construcao/index.md
+  - Transição: 
+    - Index: Transicao/index.md
 
 
   - Bibliografia: Disciplina/bibliografia.md
