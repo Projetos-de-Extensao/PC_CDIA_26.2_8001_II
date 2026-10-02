@@ -14,26 +14,44 @@ from django.urls import reverse
 from .forms import QueryUploadForm
 from .runtime import is_running_on_aws
 from .runtime import local_photo_images_dir
+from .runtime import local_photo_thumbnails_dir
 from .runtime import should_use_local_photo_db
 from .s3 import build_presigned_get_url
+from .s3 import build_presigned_thumbnail_url
 from .services import query_vector_matches
 
 
-RESULTS_PAGE_SIZE = 5
-SESSION_RESULTS_KEY = "photomatch_search_results"
-SESSION_RESULTS_VISIBLE_COUNT_KEY = "photomatch_search_visible_count"
+def _confidence_tier(distance: float) -> str:
+    if distance < 0.45:
+        return "high"
+    if distance < 0.55:
+        return "likely"
+    return "possible"
 
 
-def _build_preview_url(image_name: str) -> str | None:
-    s3_url = build_presigned_get_url(image_name)
-    if s3_url:
-        return s3_url
+def _build_local_photo_url(image_name: str) -> str | None:
+    if not should_use_local_photo_db():
+        return None
 
-    if should_use_local_photo_db():
-        safe_name = Path(image_name).name
-        return reverse("local_photo_preview", kwargs={"image_name": safe_name})
+    safe_name = Path(image_name).name
+    return reverse("local_photo_preview", kwargs={"image_name": safe_name})
 
-    return None
+
+def _build_local_thumbnail_url(image_name: str) -> str | None:
+    if not should_use_local_photo_db():
+        return None
+
+    safe_name = Path(image_name).name
+    return reverse("local_photo_thumbnail", kwargs={"image_name": safe_name})
+
+
+def _build_urls(image_name: str) -> tuple[str | None, str | None]:
+    thumbnail_url = build_presigned_thumbnail_url(image_name)
+    original_url = build_presigned_get_url(image_name)
+    if thumbnail_url and original_url:
+        return thumbnail_url, original_url
+
+    return _build_local_thumbnail_url(image_name), _build_local_photo_url(image_name)
 
 
 def _aggregate_matches(matches: list[dict]) -> list[dict]:
@@ -49,42 +67,21 @@ def _aggregate_matches(matches: list[dict]) -> list[dict]:
                 "best_distance": float(match["distance"]),
             }
 
-    return sorted(
-        [
+    results = []
+    for item in by_image.values():
+        preview_url, original_url = _build_urls(item["image_name"])
+        results.append(
             {
                 "image_name": item["image_name"],
                 "best_distance": item["best_distance"],
+                "confidence_tier": _confidence_tier(item["best_distance"]),
                 "matching_faces": counts[item["image_name"]],
-                "preview_url": _build_preview_url(item["image_name"]),
+                "preview_url": preview_url,
+                "original_url": original_url,
             }
-            for item in by_image.values()
-        ],
-        key=lambda x: x["best_distance"],
-    )
+        )
 
-
-def _prepare_results_context(results: list[dict], visible_count: int | None = None) -> dict:
-    total_count = len(results)
-    visible_count = min(visible_count or RESULTS_PAGE_SIZE, total_count)
-    visible_results = results[:visible_count]
-    return {
-        "results": visible_results,
-        "results_total_count": total_count,
-        "results_visible_count": visible_count,
-        "has_more_results": total_count > visible_count,
-    }
-
-
-def _store_results_in_session(request, results: list[dict], visible_count: int) -> None:
-    request.session[SESSION_RESULTS_KEY] = results
-    request.session[SESSION_RESULTS_VISIBLE_COUNT_KEY] = visible_count
-    request.session.modified = True
-
-
-def _clear_results_session(request) -> None:
-    request.session.pop(SESSION_RESULTS_KEY, None)
-    request.session.pop(SESSION_RESULTS_VISIBLE_COUNT_KEY, None)
-    request.session.modified = True
+    return sorted(results, key=lambda x: x["best_distance"])
 
 
 def home_view(request):
@@ -94,27 +91,9 @@ def home_view(request):
         "has_query": False,
         "no_match_message": "",
         "error_message": "",
-        "results_total_count": 0,
-        "results_visible_count": 0,
-        "has_more_results": False,
     }
 
     if request.method != "POST":
-        return render(request, "search/home.html", context)
-
-    if request.POST.get("show_more"):
-        stored_results = request.session.get(SESSION_RESULTS_KEY, [])
-        if not stored_results:
-            context["no_match_message"] = "No saved results available. Upload a selfie to start a new search."
-            return render(request, "search/home.html", context)
-
-        current_visible = int(
-            request.POST.get("results_visible_count")
-            or request.session.get(SESSION_RESULTS_VISIBLE_COUNT_KEY, RESULTS_PAGE_SIZE)
-        )
-        next_visible = min(len(stored_results), current_visible + RESULTS_PAGE_SIZE)
-        context.update(_prepare_results_context(stored_results, visible_count=next_visible))
-        _store_results_in_session(request, stored_results, next_visible)
         return render(request, "search/home.html", context)
 
     form = QueryUploadForm(request.POST, request.FILES)
@@ -152,13 +131,10 @@ def home_view(request):
     threshold = float(os.getenv("MATCH_THRESHOLD", "0.60"))
     matches = query_vector_matches(query_embedding, threshold=threshold)
     if not matches:
-        _clear_results_session(request)
         context["no_match_message"] = "No matching photos found — try another photo"
         return render(request, "search/home.html", context)
 
-    aggregated_results = _aggregate_matches(matches)
-    context.update(_prepare_results_context(aggregated_results))
-    _store_results_in_session(request, aggregated_results, context["results_visible_count"])
+    context["results"] = _aggregate_matches(matches)
     return render(request, "search/home.html", context)
 
 
@@ -166,14 +142,22 @@ def health_view(_request):
     return JsonResponse({"status": "ok"}, status=200)
 
 
-def local_photo_preview_view(_request, image_name: str):
+def _local_photo_response(image_name: str, photo_dir: Path):
     if is_running_on_aws():
         raise Http404("Not found")
 
     safe_name = Path(image_name).name
-    photo_path = local_photo_images_dir() / safe_name
+    photo_path = photo_dir / safe_name
     if not photo_path.exists() or not photo_path.is_file():
         raise Http404("Photo not found")
 
     content_type, _encoding = mimetypes.guess_type(str(photo_path))
     return FileResponse(photo_path.open("rb"), content_type=content_type or "application/octet-stream")
+
+
+def local_photo_preview_view(_request, image_name: str):
+    return _local_photo_response(image_name, local_photo_images_dir())
+
+
+def local_photo_thumbnail_view(_request, image_name: str):
+    return _local_photo_response(image_name, local_photo_thumbnails_dir())

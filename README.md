@@ -1,8 +1,24 @@
 # PhotoMatch
 
-PhotoMatch is a Django face-search demo for SBrT 2026. It runs as one Docker
-container on AWS Elastic Beanstalk, stores face embeddings in RDS PostgreSQL
-with pgvector, and reads event photos from S3 using short-lived presigned URLs.
+PhotoMatch is a Django face-search demo for SBrT 2026. It was delivered for
+the AP1 project, deployed for the event, and used during SBrT 2026.
+
+Live site: [https://d24arz92xas8lx.cloudfront.net/](https://d24arz92xas8lx.cloudfront.net/)
+
+![PhotoMatch running during SBrT 2026](./Screenshot%202026-10-02%20at%2011-00-50%20PhotoMatch%20SBrT%202026.png)
+
+## Delivery requirements completed
+
+- Documento de Visão
+- Requisitos Suplementares
+- Files needed to deploy on Elastic Beanstalk
+
+## Delivery summary
+
+The application runs as one Docker container on AWS Elastic Beanstalk, stores
+face embeddings in RDS PostgreSQL with pgvector, serves event photos from S3
+using short-lived presigned URLs, and is exposed publicly through CloudFront
+over HTTPS.
 
 For the complete AWS Management Console deployment walkthrough, see
 [AWS_DEPLOYMENT.md](./AWS_DEPLOYMENT.md).
@@ -13,6 +29,7 @@ For the complete AWS Management Console deployment walkthrough, see
 - **RDS PostgreSQL:** source of truth for 128-dimensional face embeddings.
 - **S3:** event photos only; the application role is read-only (`s3:GetObject`
   and `s3:ListBucket`).
+- **CloudFront:** HTTPS entry point in front of the deployed application.
 - **Selfies:** processed in memory for one request and never persisted.
 
 The local `THF_face_database.pkl`, `db.sqlite3`, dataset images, virtualenv,
