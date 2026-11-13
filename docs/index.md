@@ -46,7 +46,7 @@ hide:
 |---|---|
 | [Iniciação](Iniciacao/index.md) | [Documento de Visão](Iniciacao/dv.md), [Requisitos Suplementares](Iniciacao/rs.md) |
 | [Elaboração](Elaboracao/index.md) | [Casos de Uso Arquiteturais](Elaboracao/cua.md), [Pacotes e Subsistemas](Elaboracao/maps.md), [Dimensionamento Computacional](Elaboracao/dim_comp.md), [Dimensionamento do Banco](Elaboracao/dimrbd.md), [Sequência e Comunicação](Elaboracao/seq_com.md) |
-| [Transição](Transicao/index.md) | [Atividades de Deploy](Transicao/ativ_deploy.md) |
+| [Transição](Transicao/index.md) | [Atividades de Deploy](Transicao/ativ_deploy.md), [Validação do Deploy](Transicao/validacao.md) |
 
 ## Visão da arquitetura
 

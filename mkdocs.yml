@@ -22,6 +22,7 @@ nav:
   - Transição:
     - Transicao/index.md
     - Atividades de Deploy: Transicao/ativ_deploy.md
+    - Validação do Deploy: Transicao/validacao.md
 
 extra_css:
   - css/extra.css
