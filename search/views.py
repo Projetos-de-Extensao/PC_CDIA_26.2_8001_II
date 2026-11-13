@@ -1,140 +1,94 @@
 from __future__ import annotations
 
 import mimetypes
-import os
-from collections import defaultdict
 from pathlib import Path
 
-from django.http import FileResponse
-from django.http import Http404
-from django.http import JsonResponse
+from django.db.models import Count
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import render
-from django.urls import reverse
+
+from gallery.models import Event
 
 from .forms import QueryUploadForm
-from .runtime import is_running_on_aws
-from .runtime import local_photo_images_dir
-from .runtime import local_photo_thumbnails_dir
-from .runtime import should_use_local_photo_db
-from .s3 import build_presigned_get_url
-from .s3 import build_presigned_thumbnail_url
-from .services import query_vector_matches
+from .runtime import (
+    is_running_on_aws,
+    local_photo_images_dir,
+    local_photo_thumbnails_dir,
+    safe_relative_path,
+)
+from .services import get_match_threshold, search_event_photos
 
 
-def _confidence_tier(distance: float) -> str:
-    if distance < 0.45:
-        return "high"
-    if distance < 0.55:
-        return "likely"
-    return "possible"
-
-
-def _build_local_photo_url(image_name: str) -> str | None:
-    if not should_use_local_photo_db():
-        return None
-
-    safe_name = Path(image_name).name
-    return reverse("local_photo_preview", kwargs={"image_name": safe_name})
-
-
-def _build_local_thumbnail_url(image_name: str) -> str | None:
-    if not should_use_local_photo_db():
-        return None
-
-    safe_name = Path(image_name).name
-    return reverse("local_photo_thumbnail", kwargs={"image_name": safe_name})
-
-
-def _build_urls(image_name: str) -> tuple[str | None, str | None]:
-    thumbnail_url = build_presigned_thumbnail_url(image_name)
-    original_url = build_presigned_get_url(image_name)
-    if thumbnail_url and original_url:
-        return thumbnail_url, original_url
-
-    return _build_local_thumbnail_url(image_name), _build_local_photo_url(image_name)
-
-
-def _aggregate_matches(matches: list[dict]) -> list[dict]:
-    by_image: dict[str, dict] = {}
-    counts: dict[str, int] = defaultdict(int)
-    for match in matches:
-        image_name = match["image_name"]
-        counts[image_name] += 1
-        current = by_image.get(image_name)
-        if current is None or match["distance"] < current["best_distance"]:
-            by_image[image_name] = {
-                "image_name": image_name,
-                "best_distance": float(match["distance"]),
-            }
-
-    results = []
-    for item in by_image.values():
-        preview_url, original_url = _build_urls(item["image_name"])
-        results.append(
-            {
-                "image_name": item["image_name"],
-                "best_distance": item["best_distance"],
-                "confidence_tier": _confidence_tier(item["best_distance"]),
-                "matching_faces": counts[item["image_name"]],
-                "preview_url": preview_url,
-                "original_url": original_url,
-            }
+def published_events():
+    """Events shown on the page: published and with at least one indexed face."""
+    return (
+        Event.objects.filter(published=True)
+        .annotate(
+            photo_total=Count("photos", distinct=True),
+            face_total=Count("photos__faces", distinct=True),
         )
+        .filter(face_total__gt=0)
+        .order_by("-starts_on", "name")
+    )
 
-    return sorted(results, key=lambda x: x["best_distance"])
+
+def _selected_event(events, slug: str | None):
+    if slug:
+        return next((event for event in events if event.slug == slug), None)
+    return events[0] if len(events) == 1 else None
 
 
 def home_view(request):
+    events = list(published_events())
+    requested_slug = request.POST.get("event") if request.method == "POST" else request.GET.get("evento")
+    selected = _selected_event(events, requested_slug)
+
     context: dict = {
         "form": QueryUploadForm(),
+        "events": events,
+        "selected_event": selected,
         "results": [],
         "has_query": False,
         "no_match_message": "",
         "error_message": "",
+        "error_state": "",
     }
 
     if request.method != "POST":
         return render(request, "search/home.html", context)
 
+    context["has_query"] = True
+    if selected is None:
+        context["error_state"] = "errorEvent"
+        context["error_message"] = "Escolha um evento antes de buscar."
+        return render(request, "search/home.html", context, status=400)
+
     form = QueryUploadForm(request.POST, request.FILES)
     context["form"] = form
-    context["has_query"] = True
-
     if not form.is_valid():
-        context["error_message"] = form.errors.get("__all__", ["Invalid form data."])[0]
+        context["error_state"] = "errorSelfie"
+        context["error_message"] = form.errors.get("__all__", ["Envie uma selfie."])[0]
         return render(request, "search/home.html", context, status=400)
 
     uploaded = form.cleaned_data.get("selfie_capture") or form.cleaned_data.get("selfie_file")
     try:
         import face_engine as fe
-    except ModuleNotFoundError as exc:
-        if exc.name in {"pkg_resources", "face_recognition_models"}:
-            context["error_message"] = (
-                "Face search dependencies are missing. Install project requirements and restart the server."
-            )
-            return render(request, "search/home.html", context, status=500)
-        raise
-    except SystemExit:
-        context["error_message"] = (
-            "Face search dependencies are not available. Install project requirements and restart the server."
-        )
+    except (ModuleNotFoundError, SystemExit):
+        context["error_state"] = "error"
+        context["error_message"] = "A busca facial não está disponível neste servidor."
         return render(request, "search/home.html", context, status=500)
 
-    query_bytes = uploaded.read()
-    query_img = fe.load_image_rgb(query_bytes)
+    query_img = fe.load_image_rgb(uploaded.read())
     query_embedding, _query_bboxes = fe.get_query_embedding(query_img)
-
     if query_embedding is None:
-        context["error_message"] = "No face detected in the uploaded photo. Please try another photo."
+        context["error_state"] = "errorNoFace"
+        context["error_message"] = "Nenhum rosto encontrado na foto enviada. Tente outra foto."
         return render(request, "search/home.html", context, status=422)
 
-    threshold = float(os.getenv("MATCH_THRESHOLD", "0.60"))
-    matches = query_vector_matches(query_embedding, threshold=threshold)
-    if not matches:
-        context["no_match_message"] = "No matching photos found — try another photo"
-        return render(request, "search/home.html", context)
-
-    context["results"] = _aggregate_matches(matches)
+    results = search_event_photos(query_embedding.tolist(), selected, threshold=get_match_threshold())
+    if not results:
+        context["no_match_message"] = "Nenhuma foto correspondente encontrada."
+    context["results"] = results
     return render(request, "search/home.html", context)
 
 
@@ -146,9 +100,13 @@ def _local_photo_response(image_name: str, photo_dir: Path):
     if is_running_on_aws():
         raise Http404("Not found")
 
-    safe_name = Path(image_name).name
-    photo_path = photo_dir / safe_name
-    if not photo_path.exists() or not photo_path.is_file():
+    relative = safe_relative_path(image_name)
+    if relative is None:
+        raise Http404("Not found")
+
+    base = photo_dir.resolve()
+    photo_path = (base / relative).resolve()
+    if base not in photo_path.parents or not photo_path.is_file():
         raise Http404("Photo not found")
 
     content_type, _encoding = mimetypes.guess_type(str(photo_path))

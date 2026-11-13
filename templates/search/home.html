@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+{% load humanize %}<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0f172a">
-  <title>PhotoMatch | SBrT 2026</title>
+  <title>PhotoMatch | Encontre suas fotos de eventos</title>
   <style>
     :root {
       color-scheme: light;
@@ -155,9 +155,107 @@
       border: 1px solid #e2e8f0;
       border-radius: 18px;
       box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
-      max-width: 760px;
+      max-width: 880px;
       padding: 22px;
     }
+    .step { margin-top: 26px; }
+    .step:first-of-type { margin-top: 0; }
+    .step-heading {
+      align-items: flex-start;
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .step-number {
+      align-items: center;
+      background: #2563eb;
+      border-radius: 50%;
+      color: #fff;
+      display: inline-flex;
+      flex: 0 0 28px;
+      font-size: 0.82rem;
+      font-weight: 800;
+      height: 28px;
+      justify-content: center;
+      width: 28px;
+    }
+    .step.is-waiting .step-number { background: #cbd5e1; color: #475569; }
+    .step.is-waiting .dropzone { opacity: 0.55; }
+    .event-options {
+      border: 0;
+      display: grid;
+      gap: 10px;
+      grid-template-columns: minmax(0, 1fr);
+      margin: 0;
+      padding: 0;
+    }
+    .event-option { position: relative; }
+    .event-option input {
+      height: 1px;
+      opacity: 0;
+      position: absolute;
+      width: 1px;
+    }
+    .event-card {
+      background: #fff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 14px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      height: 100%;
+      padding: 14px 44px 14px 16px;
+      position: relative;
+      transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+    }
+    .event-card:hover { border-color: #93c5fd; }
+    .event-card::after {
+      border: 1.5px solid #cbd5e1;
+      border-radius: 50%;
+      content: "";
+      height: 18px;
+      position: absolute;
+      right: 16px;
+      top: 16px;
+      width: 18px;
+    }
+    .event-option input:checked + .event-card {
+      background: #eff6ff;
+      border-color: #2563eb;
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.14);
+    }
+    .event-option input:checked + .event-card::after {
+      background: #2563eb;
+      border-color: #2563eb;
+      box-shadow: inset 0 0 0 3px #eff6ff;
+    }
+    .event-option input:focus-visible + .event-card { outline: 3px solid #93c5fd; outline-offset: 2px; }
+    .event-name { font-size: 1rem; font-weight: 800; letter-spacing: -0.02em; }
+    .event-meta { color: #475569; font-size: 0.8rem; }
+    .event-count {
+      align-self: flex-start;
+      background: #fef3c7;
+      border-radius: 999px;
+      color: #92400e;
+      font-size: 0.7rem;
+      font-weight: 800;
+      margin-top: 2px;
+      padding: 3px 8px;
+    }
+    .search-target {
+      color: #475569;
+      font-size: 0.8rem;
+      margin: 10px 2px 0;
+    }
+    .search-target strong { color: #1d4ed8; }
+    .search-button:disabled {
+      background: #94a3b8;
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .results-heading h2 .results-event { color: #1d4ed8; }
     .section-heading {
       align-items: flex-start;
       display: flex;
@@ -461,6 +559,7 @@
       .container { padding: 48px 32px 70px; }
       .hero { padding-bottom: 30px; }
       .results { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .event-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (min-width: 960px) {
       .container { padding-left: 48px; padding-right: 48px; }
@@ -492,50 +591,79 @@
 
   <main class="container">
     <section class="hero" id="how-it-works" aria-labelledby="page-title">
-      <p class="eyebrow" data-i18n="eyebrow">SBrT 2026 · Edição especial</p>
+      <p class="eyebrow" data-i18n="eyebrow">Galerias de eventos acadêmicos</p>
       <h1 id="page-title" data-i18n="heroTitle">Encontre cada momento em que você aparece.</h1>
       <p class="hero-copy" data-i18n="heroCopy">
-        Envie uma selfie e descubra instantaneamente as fotos do evento em que você está.
+        Escolha o evento, envie uma selfie e veja as fotos oficiais em que você está.
         O PhotoMatch usa reconhecimento facial para encontrar suas memórias na galeria.
-      </p>
-      <p class="event-details" data-i18n="eventDetails">Salvador, BA · 29 de setembro a 02 de outubro de 2026</p>
-      <p class="research-note" data-i18n="researchNote">
-        Demonstração de pesquisa apresentada no SBrT 2026, desenvolvida por Nicholas Borges de Vasconcelos e equipe.
       </p>
     </section>
 
-    <section class="upload-panel" aria-labelledby="upload-title">
-      <div class="section-heading">
-        <div>
-          <h2 id="upload-title" data-i18n="uploadTitle">Comece sua busca</h2>
-          <p class="section-kicker" data-i18n="uploadKicker">Uma foto é tudo o que você precisa.</p>
-        </div>
-      </div>
+    <section class="upload-panel" aria-labelledby="event-step-title">
       <form id="search-form" method="post" enctype="multipart/form-data">
         {% csrf_token %}
-        <label class="dropzone" id="dropzone" for="selfie_file">
-          <img class="upload-preview" id="upload-preview" alt="" aria-hidden="true">
-          <span class="upload-icon" aria-hidden="true">
-            <svg width="23" height="23" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <span class="dropzone-copy">
-            <span class="dropzone-title" id="file-label" data-i18n="dropzoneTitle">Solte uma selfie aqui ou toque para escolher</span>
-            <span class="dropzone-subtitle" data-i18n="dropzoneSubtitle">JPG ou PNG · processada com segurança em memória</span>
-          </span>
-        </label>
-        <input class="file-input" id="selfie_file" name="selfie_file" type="file" accept="image/*">
-        <input class="file-input" id="selfie_capture" name="selfie_capture" type="file" accept="image/*" capture="user">
+        <div class="step" id="event-step">
+          <div class="step-heading">
+            <span class="step-number" aria-hidden="true">1</span>
+            <div>
+              <h2 id="event-step-title" data-i18n="eventStepTitle">Escolha o evento</h2>
+              <p class="section-kicker" data-i18n="eventStepKicker">A busca acontece só nas fotos do evento escolhido.</p>
+            </div>
+          </div>
+          {% if events %}
+            <fieldset class="event-options" aria-labelledby="event-step-title">
+              {% for event in events %}
+                <div class="event-option">
+                  <input type="radio" name="event" id="event-{{ event.slug }}" value="{{ event.slug }}" data-event-name="{{ event.name }}" required{% if selected_event and selected_event.slug == event.slug %} checked{% endif %}>
+                  <label class="event-card" for="event-{{ event.slug }}">
+                    <span class="event-name">{{ event.name }}</span>
+                    <span class="event-meta">{% if event.venue %}{{ event.venue }} · {% endif %}{{ event.starts_on|date:"d/m/Y" }} – {{ event.ends_on|date:"d/m/Y" }}</span>
+                    <span class="event-count">{{ event.photo_total|intcomma }} <span data-i18n="photosLabel">fotos com rostos</span></span>
+                  </label>
+                </div>
+              {% endfor %}
+            </fieldset>
+          {% else %}
+            <p class="empty" data-state="noEvents">Nenhum evento disponível ainda.</p>
+          {% endif %}
+        </div>
 
-        <div class="upload-actions">
-          <button class="search-button" type="submit"><span data-i18n="searchButton">Encontrar minhas fotos</span> <span aria-hidden="true">&nbsp;→</span></button>
-          <button class="camera-button" id="camera-trigger" type="button" aria-label="Tirar uma selfie com sua câmera">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h2l1.1-1.5h4.8L15.5 6h2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-8Z" stroke="currentColor" stroke-width="1.8"/>
-              <circle cx="12" cy="12.5" r="3.2" stroke="currentColor" stroke-width="1.8"/>
-            </svg>
-          </button>
+        <div class="step{% if not selected_event %} is-waiting{% endif %}" id="selfie-step">
+          <div class="step-heading">
+            <span class="step-number" aria-hidden="true">2</span>
+            <div>
+              <h2 id="upload-title" data-i18n="uploadTitle">Envie uma selfie</h2>
+              <p class="section-kicker" data-i18n="uploadKicker">Uma foto é tudo o que você precisa.</p>
+            </div>
+          </div>
+          <label class="dropzone" id="dropzone" for="selfie_file">
+            <img class="upload-preview" id="upload-preview" alt="" aria-hidden="true">
+            <span class="upload-icon" aria-hidden="true">
+              <svg width="23" height="23" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="dropzone-copy">
+              <span class="dropzone-title" id="file-label" data-i18n="dropzoneTitle">Solte uma selfie aqui ou toque para escolher</span>
+              <span class="dropzone-subtitle" data-i18n="dropzoneSubtitle">JPG ou PNG · processada com segurança em memória</span>
+            </span>
+          </label>
+          <input class="file-input" id="selfie_file" name="selfie_file" type="file" accept="image/*">
+          <input class="file-input" id="selfie_capture" name="selfie_capture" type="file" accept="image/*" capture="user">
+
+          <div class="upload-actions">
+            <button class="search-button" id="search-button" type="submit"{% if not events %} disabled{% endif %}><span data-i18n="searchButton">Encontrar minhas fotos</span> <span aria-hidden="true">&nbsp;→</span></button>
+            <button class="camera-button" id="camera-trigger" type="button" aria-label="Tirar uma selfie com sua câmera">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h2l1.1-1.5h4.8L15.5 6h2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-8Z" stroke="currentColor" stroke-width="1.8"/>
+                <circle cx="12" cy="12.5" r="3.2" stroke="currentColor" stroke-width="1.8"/>
+              </svg>
+            </button>
+          </div>
+          <p class="search-target" aria-live="polite">
+            <span data-i18n="searchTargetLabel">Buscando em:</span>
+            <strong id="search-target-name">{% if selected_event %}{{ selected_event.name }}{% endif %}</strong><span id="search-target-none" data-i18n="searchTargetNone"{% if selected_event %} hidden{% endif %}>escolha um evento acima</span>
+          </p>
         </div>
       </form>
       <p class="privacy" id="privacy">
@@ -543,22 +671,22 @@
           <path d="M12 3 19 6v5c0 4.5-3 8.1-7 10-4-1.9-7-5.5-7-10V6l7-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
           <path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <span><strong data-i18n="privacyLead">Sua privacidade importa.</strong> <span data-i18n="privacyText">Sua selfie é usada apenas em memória para buscar nas fotos deste evento. Ela nunca é armazenada.</span></span>
+        <span><strong data-i18n="privacyLead">Sua privacidade importa.</strong> <span data-i18n="privacyText">Sua selfie é usada apenas em memória para buscar nas fotos do evento escolhido. Ela nunca é armazenada.</span></span>
       </p>
     </section>
 
     {% if error_message %}
-      <section class="panel"><p class="error" data-state="error">{{ error_message }}</p></section>
+      <section class="panel" id="search-feedback"><p class="error" data-state="{{ error_state|default:"error" }}">{{ error_message }}</p></section>
     {% endif %}
 
     {% if no_match_message %}
-      <section class="panel"><p class="empty" data-state="empty">{{ no_match_message }}</p></section>
+      <section class="panel" id="search-feedback"><p class="empty"><span data-state="empty">{{ no_match_message }}</span> <strong>{{ selected_event.name }}</strong>.</p></section>
     {% endif %}
 
     {% if results %}
-      <div class="results-heading">
-        <h2 data-i18n="resultsTitle">Suas memórias</h2>
-        <p data-i18n="resultsKicker">Toque em uma foto para explorar</p>
+      <div class="results-heading" id="search-results">
+        <h2><span data-i18n="resultsTitle">Suas fotos em</span> <span class="results-event">{{ selected_event.name }}</span></h2>
+        <p>{{ results|length }} <span data-i18n="resultsCount">fotos encontradas</span></p>
       </div>
       <section class="results">
         {% for result in results %}
@@ -575,7 +703,7 @@
             <div class="card-body">
               <div class="match-row">
                 <span class="match-tag" data-confidence-tier="{{ result.confidence_tier }}" data-distance="{{ result.best_distance|floatformat:3 }}"></span>
-                <span class="event-label" data-i18n="eventGallery">Galeria do evento</span>
+                <span class="event-label">{{ selected_event.name }}</span>
               </div>
               {% if result.original_url %}
                 <a class="high-res" href="{{ result.original_url }}" target="_blank" rel="noopener"><span data-i18n="highRes">Abrir em alta resolução</span> <span aria-hidden="true">↗</span></a>
@@ -601,7 +729,7 @@
 
     <footer>
       <h2 data-i18n="footerTitle">Memórias do evento, fundamentadas em pesquisa.</h2>
-      <p data-i18n="footerText">PhotoMatch · SBrT 2026 · Projeto acadêmico Ibmec</p>
+      <p data-i18n="footerText">PhotoMatch · Projeto acadêmico Ibmec</p>
       <p data-i18n="footerTeam">Equipe: Nicholas Borges de Vasconcelos, Mel Bozzola, Adam Bennet Bleiel, Rigel P. Fernandes, Victor A. Azevedo Costa Santos e Clayton J. A. Silva.</p>
     </footer>
   </main>
@@ -645,26 +773,28 @@
           navHow: "Como funciona",
           navPrivacy: "Privacidade",
           navOrganizers: "Organizadores",
-          eyebrow: "SBrT 2026 · Edição especial",
+          eyebrow: "Galerias de eventos acadêmicos",
           heroTitle: "Encontre cada momento em que você aparece.",
-          heroCopy: "Envie uma selfie e descubra instantaneamente as fotos do evento em que você está. O PhotoMatch usa reconhecimento facial para encontrar suas memórias na galeria.",
-          eventDetails: "Salvador, BA · 29 de setembro a 02 de outubro de 2026",
-          researchNote: "Demonstração de pesquisa apresentada no SBrT 2026, desenvolvida por Nicholas Borges de Vasconcelos e equipe.",
-          uploadTitle: "Comece sua busca",
+          heroCopy: "Escolha o evento, envie uma selfie e veja as fotos oficiais em que você está. O PhotoMatch usa reconhecimento facial para encontrar suas memórias na galeria.",
+          eventStepTitle: "Escolha o evento",
+          eventStepKicker: "A busca acontece só nas fotos do evento escolhido.",
+          photosLabel: "fotos com rostos",
+          uploadTitle: "Envie uma selfie",
           uploadKicker: "Uma foto é tudo o que você precisa.",
+          searchTargetLabel: "Buscando em:",
+          searchTargetNone: "escolha um evento acima",
           dropzoneTitle: "Solte uma selfie aqui ou toque para escolher",
           dropzoneSubtitle: "JPG ou PNG · processada com segurança em memória",
           searchButton: "Encontrar minhas fotos",
           privacyLead: "Sua privacidade importa.",
-          privacyText: "Sua selfie é usada apenas em memória para buscar nas fotos deste evento. Ela nunca é armazenada.",
-          resultsTitle: "Suas memórias",
-          resultsKicker: "Toque em uma foto para explorar",
+          privacyText: "Sua selfie é usada apenas em memória para buscar nas fotos do evento escolhido. Ela nunca é armazenada.",
+          resultsTitle: "Suas fotos em",
+          resultsCount: "fotos encontradas",
           confidence: {
             high: "Correspondência alta · distância",
             likely: "Correspondência provável · distância",
             possible: "Correspondência possível · distância"
           },
-          eventGallery: "Galeria do evento",
           highRes: "Abrir em alta resolução",
           aboutTitle: "Sobre o projeto",
           aboutText: "Este é um projeto de turma do Centro Universitário Ibmec, no Rio de Janeiro, dos cursos de Engenharia da Computação e de Software e Ciência de Dados e Inteligência Artificial, desenvolvido e avaliado por estudantes.",
@@ -674,10 +804,14 @@
           articleResult: "Resultado: 88,5% de recall de presença facial em 3.344 faces indexadas do dataset SBrT2025.",
           articleButton: "Ler o artigo",
           footerTitle: "Memórias do evento, fundamentadas em pesquisa.",
-          footerText: "PhotoMatch · SBrT 2026 · Projeto acadêmico Ibmec",
+          footerText: "PhotoMatch · Projeto acadêmico Ibmec",
           footerTeam: "Equipe: Nicholas Borges de Vasconcelos, Mel Bozzola, Adam Bennet Bleiel, Rigel P. Fernandes, Victor A. Azevedo Costa Santos e Clayton J. A. Silva.",
           error: "Não foi possível processar sua busca. Tente novamente com outra imagem.",
-          empty: "Nenhuma foto correspondente foi encontrada — tente outra selfie.",
+          errorEvent: "Escolha um evento antes de buscar.",
+          errorSelfie: "Envie uma selfie para buscar.",
+          errorNoFace: "Nenhum rosto encontrado na foto enviada. Tente outra foto, de frente e com boa luz.",
+          noEvents: "Nenhum evento disponível ainda.",
+          empty: "Nenhuma foto correspondente encontrada em",
           modalLabel: "Visualização ampliada",
           closeLabel: "Fechar foto ampliada",
           imageAlt: "Foto do evento",
@@ -689,26 +823,28 @@
           navHow: "How it works",
           navPrivacy: "Privacy",
           navOrganizers: "Organizers",
-          eyebrow: "SBrT 2026 · Special edition",
+          eyebrow: "Academic event galleries",
           heroTitle: "Find every moment you appear in.",
-          heroCopy: "Upload a selfie and instantly discover the event photos you are in. PhotoMatch uses facial recognition to find your memories in the gallery.",
-          eventDetails: "Salvador, BA · September 29 to October 02, 2026",
-          researchNote: "Research demonstration presented at SBrT 2026, developed by Nicholas Borges de Vasconcelos and team.",
-          uploadTitle: "Start your search",
+          heroCopy: "Pick the event, upload a selfie and see the official photos you are in. PhotoMatch uses facial recognition to find your memories in the gallery.",
+          eventStepTitle: "Choose the event",
+          eventStepKicker: "The search only looks at the chosen event's photos.",
+          photosLabel: "photos with faces",
+          uploadTitle: "Upload a selfie",
           uploadKicker: "One photo is all you need.",
+          searchTargetLabel: "Searching in:",
+          searchTargetNone: "choose an event above",
           dropzoneTitle: "Drop a selfie here or tap to browse",
           dropzoneSubtitle: "JPG or PNG · processed securely in memory",
           searchButton: "Find my photos",
           privacyLead: "Your privacy matters.",
-          privacyText: "Your selfie is used only in memory to search this event's photos. It is never stored.",
-          resultsTitle: "Your memories",
-          resultsKicker: "Tap a photo to explore",
+          privacyText: "Your selfie is used only in memory to search the chosen event's photos. It is never stored.",
+          resultsTitle: "Your photos at",
+          resultsCount: "photos found",
           confidence: {
             high: "High match · distance",
             likely: "Likely match · distance",
             possible: "Possible match · distance"
           },
-          eventGallery: "Event gallery",
           highRes: "Open high-resolution",
           aboutTitle: "About the project",
           aboutText: "This is a class project from Ibmec University Center in Rio de Janeiro, from the Computer and Software Engineering and Data Science and AI programs, built and evaluated by students.",
@@ -718,10 +854,14 @@
           articleResult: "Result: 88.5% face-presence recall over 3,344 indexed faces from the SBrT2025 dataset.",
           articleButton: "Read the paper",
           footerTitle: "Event memories, grounded in research.",
-          footerText: "PhotoMatch · SBrT 2026 · Ibmec academic project",
+          footerText: "PhotoMatch · Ibmec academic project",
           footerTeam: "Team: Nicholas Borges de Vasconcelos, Mel Bozzola, Adam Bennet Bleiel, Rigel P. Fernandes, Victor A. Azevedo Costa Santos, and Clayton J. A. Silva.",
           error: "We could not process your search. Please try another image.",
-          empty: "No matching photos were found — try another selfie.",
+          errorEvent: "Choose an event before searching.",
+          errorSelfie: "Upload a selfie to search.",
+          errorNoFace: "No face found in the uploaded photo. Try another one, facing the camera in good light.",
+          noEvents: "No events available yet.",
+          empty: "No matching photos found at",
           modalLabel: "Larger photo view",
           closeLabel: "Close larger photo",
           imageAlt: "Event photo",
@@ -817,6 +957,26 @@
         });
       });
 
+      const eventInputs = Array.from(document.querySelectorAll('input[name="event"]'));
+      const selfieStep = document.getElementById("selfie-step");
+      const targetName = document.getElementById("search-target-name");
+      const targetNone = document.getElementById("search-target-none");
+      const updateSelectedEvent = () => {
+        const checked = eventInputs.find((input) => input.checked);
+        selfieStep.classList.toggle("is-waiting", !checked);
+        targetName.textContent = checked ? checked.dataset.eventName : "";
+        targetNone.hidden = Boolean(checked);
+      };
+      eventInputs.forEach((input) => input.addEventListener("change", () => {
+        updateSelectedEvent();
+        const url = new URL(window.location.href);
+        url.searchParams.set("evento", input.value);
+        window.history.replaceState(null, "", url);
+      }));
+      updateSelectedEvent();
+      const feedback = document.getElementById("search-results") || document.getElementById("search-feedback");
+      if (feedback) feedback.scrollIntoView({ block: "start" });
+
       document.getElementById("camera-trigger").addEventListener("click", () => captureInput.click());
       fileInput.addEventListener("change", () => {
         if (fileInput.files.length) showUploadPreview(fileInput.files[0]);
@@ -825,6 +985,11 @@
         if (captureInput.files.length) showUploadPreview(captureInput.files[0]);
       });
       searchForm.addEventListener("submit", async (event) => {
+        if (eventInputs.length && !eventInputs.some((radio) => radio.checked)) {
+          event.preventDefault();
+          eventInputs[0].reportValidity();
+          return;
+        }
         const input = captureInput.files.length ? captureInput : fileInput;
         if (!input.files.length) return;
 

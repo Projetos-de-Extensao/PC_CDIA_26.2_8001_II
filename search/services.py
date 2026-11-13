@@ -1,63 +1,57 @@
+"""Selfie search for the web page. The vector search itself lives in
+gallery.services.find_similar_photos (pgvector); this module only resolves
+the photo URLs and the confidence label for each match."""
+
 from __future__ import annotations
 
-import os
-from functools import lru_cache
+from django.urls import reverse
 
-from pgvector.django import L2Distance
+from gallery.models import Event
+from gallery.services import find_similar_photos, get_match_threshold
 
-from .models import FaceEmbedding
-from .runtime import local_photo_db_path, should_use_local_photo_db
+from .runtime import local_photos_enabled, safe_relative_path, thumbnail_name
+from .s3 import build_presigned_get_url, build_presigned_thumbnail_url
 
-
-def get_match_threshold() -> float:
-    return float(os.getenv("MATCH_THRESHOLD", "0.60"))
+__all__ = ["get_match_threshold", "search_event_photos", "confidence_tier"]
 
 
-@lru_cache(maxsize=1)
-def _load_local_photo_database() -> list[dict]:
-    import face_engine as fe
-
-    return fe.load_database(local_photo_db_path())
-
-
-def _query_local_matches(query_embedding, threshold: float) -> list[dict]:
-    import face_engine as fe
-
-    matches = fe.search(query_embedding, _load_local_photo_database(), threshold=threshold)
-    return [
-        {
-            "image_name": row["image_name"],
-            "day": row.get("day", ""),
-            "face_index": int(row["face_index"]),
-            "bbox": row["bbox"],
-            "distance": float(row["distance"]),
-        }
-        for row in matches
-    ]
+def confidence_tier(distance: float) -> str:
+    if distance < 0.45:
+        return "high"
+    if distance < 0.55:
+        return "likely"
+    return "possible"
 
 
-def query_vector_matches(query_embedding, threshold: float | None = None) -> list[dict]:
-    resolved_threshold = get_match_threshold() if threshold is None else threshold
+def _photo_urls(image_name: str) -> tuple[str | None, str | None]:
+    thumbnail_url = build_presigned_thumbnail_url(image_name)
+    original_url = build_presigned_get_url(image_name)
+    if thumbnail_url and original_url:
+        return thumbnail_url, original_url
 
-    if should_use_local_photo_db():
-        return _query_local_matches(query_embedding, threshold=resolved_threshold)
-
-    query_vector = query_embedding.tolist()
-
-    queryset = (
-        FaceEmbedding.objects.annotate(distance=L2Distance("embedding", query_vector))
-        .filter(distance__lte=resolved_threshold)
-        .order_by("distance")
-        .values("image_name", "day", "face_index", "bbox", "distance")
+    relative = safe_relative_path(image_name)
+    if relative is None or not local_photos_enabled():
+        return None, None
+    return (
+        reverse("local_photo_thumbnail", kwargs={"image_name": thumbnail_name(relative)}),
+        reverse("local_photo_preview", kwargs={"image_name": relative}),
     )
 
-    return [
-        {
-            "image_name": row["image_name"],
-            "day": row["day"],
-            "face_index": row["face_index"],
-            "bbox": row["bbox"],
-            "distance": float(row["distance"]),
-        }
-        for row in queryset
-    ]
+
+def search_event_photos(query_embedding, event: Event, threshold: float | None = None) -> list[dict]:
+    """Photos of one event that contain a face close to the selfie."""
+    matches = find_similar_photos(query_embedding, threshold=threshold, event=event, limit=200)
+    results = []
+    for match in matches:
+        preview_url, original_url = _photo_urls(match["image_name"])
+        results.append(
+            {
+                "image_name": match["image_name"],
+                "best_distance": match["best_distance"],
+                "confidence_tier": confidence_tier(match["best_distance"]),
+                "matching_faces": match["matching_faces"],
+                "preview_url": preview_url,
+                "original_url": original_url,
+            }
+        )
+    return results

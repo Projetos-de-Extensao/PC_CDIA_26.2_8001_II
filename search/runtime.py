@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from django.conf import settings
 
@@ -25,18 +25,11 @@ def is_running_on_aws() -> bool:
     )
 
 
-def local_photo_db_path() -> Path:
-    configured = os.getenv("LOCAL_PHOTO_DB_PATH")
-    if configured:
-        return Path(configured).expanduser()
-    return Path(settings.BASE_DIR) / "THF_face_database.pkl"
-
-
 def local_photo_images_dir() -> Path:
     configured = os.getenv("LOCAL_PHOTO_IMAGES_DIR") or os.getenv("DATASET_IMAGES_DIR")
     if configured:
         return Path(configured).expanduser()
-    return Path(settings.BASE_DIR) / "dataset_images"
+    return Path(settings.BASE_DIR) / "dataset"
 
 
 def local_photo_thumbnails_dir() -> Path:
@@ -46,9 +39,29 @@ def local_photo_thumbnails_dir() -> Path:
     return Path(settings.BASE_DIR) / "thumb"
 
 
-def should_use_local_photo_db() -> bool:
+def local_photos_enabled() -> bool:
+    """Serve photos from local folders (development) instead of S3."""
     return (
-        _env_flag("LOCAL_PHOTO_DB_ENABLED", True)
+        _env_flag("LOCAL_PHOTOS_ENABLED", True)
         and not is_running_on_aws()
-        and local_photo_db_path().exists()
+        and local_photo_images_dir().is_dir()
     )
+
+
+def safe_relative_path(image_name: str) -> str | None:
+    """Normalise a stored photo path like 'sbrt2025/THF_0193.jpg'.
+
+    Returns None for anything that could escape the photo folder
+    (absolute paths, '..', backslashes, empty names).
+    """
+    if not image_name or "\\" in image_name:
+        return None
+    path = PurePosixPath(image_name)
+    if path.is_absolute() or any(part in {"", ".", ".."} for part in path.parts):
+        return None
+    return path.as_posix()
+
+
+def thumbnail_name(image_name: str) -> str:
+    """Thumbnails keep the photo's folder and are always JPEG (see make_thumb.py)."""
+    return str(PurePosixPath(image_name).with_suffix(".jpg"))

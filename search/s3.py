@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
+
+from .runtime import safe_relative_path, thumbnail_name
 
 
 def _normalized_prefix(prefix: str) -> str:
@@ -27,15 +28,17 @@ def build_presigned_get_url(
     *,
     prefix: str | None = None,
 ) -> str | None:
+    """Short-lived URL for a private S3 object. Keys keep the event folder:
+    <S3_IMAGE_PREFIX><event folder>/<file>."""
     bucket = _bucket_name()
-    if not bucket:
+    relative = safe_relative_path(image_name)
+    if not bucket or relative is None:
         return None
 
     import boto3
 
-    safe_name = Path(image_name).name
     object_prefix = _image_prefix() if prefix is None else prefix
-    key = f"{_normalized_prefix(object_prefix)}{safe_name}"
+    key = f"{_normalized_prefix(object_prefix)}{relative}"
     s3_client = boto3.client("s3")
     return s3_client.generate_presigned_url(
         "get_object",
@@ -46,7 +49,7 @@ def build_presigned_get_url(
 
 def build_presigned_thumbnail_url(image_name: str, expires_seconds: int = 300) -> str | None:
     return build_presigned_get_url(
-        image_name,
+        thumbnail_name(image_name),
         expires_seconds=expires_seconds,
         prefix=_thumbnail_prefix(),
     )
