@@ -1,33 +1,27 @@
----
-repo_url: https://github.com/jonh-carvalho/PC_ADS_26.2_8001
-site_author: Jonh Carvalho
-site_name: PC_ADS_26.2_8001
-copyright: Copyright ©️ 2026, Jonh Carvalho
+site_name: PhotoMatch - Projeto de Cloud
+site_description: API Django multimodelo (PostgreSQL + pgvector) em Docker na EC2, com documentação RUP
+site_url: https://projetos-de-extensao.github.io/PC_CDIA_26.2_8001_II/
+repo_url: https://github.com/Projetos-de-Extensao/PC_CDIA_26.2_8001_II
+repo_name: PC_CDIA_26.2_8001_II
+site_author: Nicholas Borges de Vasconcelos
+copyright: Copyright ©️ 2026, PhotoMatch - Projeto de Cloud (PC_CDIA_26.2_8001)
 
-nav: 
+nav:
   - Home: index.md
-  - Disciplina:
-      - Aulas: Disciplina/aulas.md
-      - Iniciação: 
-        - Desafios: Disciplina/roteiros/Iniciacao/desafios.md
-        - Case Template: Disciplina/roteiros/Iniciacao/case_template.md
-        - Documento de Visão Preenchido: Disciplina/roteiros/Iniciacao/dv_template_preenchido.md
-        - Requisitos Suplementares: Disciplina/roteiros/Iniciacao/requisitos_suplementares.md
-        - Casos de Uso Arquiteturais: Disciplina\roteiros\Iniciacao\casos_uso_arquiteturais.md
-  - Iniciação: 
-    - Index: Iniciacao/index.md
-    - Documento de Visão Preenchido: Iniciacao/dv.md
+  - Iniciação:
+    - Iniciacao/index.md
+    - Documento de Visão: Iniciacao/dv.md
     - Requisitos Suplementares: Iniciacao/rs.md
-  - Elaboração: 
-    - Index: Elaboracao/index.md
+  - Elaboração:
+    - Elaboracao/index.md
     - Casos de Uso Arquiteturais: Elaboracao/cua.md
-  - Construção:
-    - Index: Construcao/index.md
-  - Transição: 
-    - Index: Transicao/index.md
-
-
-  - Bibliografia: Disciplina/bibliografia.md
+    - Pacotes e Subsistemas: Elaboracao/maps.md
+    - Dimensionamento Computacional: Elaboracao/dim_comp.md
+    - Dimensionamento do Banco: Elaboracao/dimrbd.md
+    - Sequência e Comunicação: Elaboracao/seq_com.md
+  - Transição:
+    - Transicao/index.md
+    - Atividades de Deploy: Transicao/ativ_deploy.md
 
 extra_css:
   - css/extra.css
@@ -68,8 +62,12 @@ markdown_extensions:
   - pymdownx.mark
   # Code Blocks, Tooltips
   - pymdownx.snippets
-  # Admonitions, Annotations, Code Blocks, Content Tabs
-  - pymdownx.superfences
+  # Admonitions, Annotations, Code Blocks, Content Tabs, Mermaid diagrams
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   # Content Tabs
   - pymdownx.tabbed:
       alternate_style: true
