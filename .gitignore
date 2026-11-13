@@ -1,5 +1,33 @@
-.venv
-site
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
 
-src
-AWS_DEPLOYMENT.md
+# Local data and secrets
+.env
+.env.*
+!.env.example
+db.sqlite3
+*.pkl
+dataset/
+staticfiles/
+
+# Elastic Beanstalk CLI state (AP1 deploy, replaced by EC2 + Docker Compose)
+.elasticbeanstalk/
+
+# Backups and SSH keys
+backups/
+*.dump
+*.pem
+
+# MkDocs build output
+site/
+
+# Local-only notes and tool config
+.claude/
+AP2_GUIDE.md
+docker-compose.override.yml
+
+# Event photo folders (large, never in Git)
+VTEX Event Photos/
