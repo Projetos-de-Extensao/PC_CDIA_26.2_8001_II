@@ -1,0 +1,18 @@
+# Local development only: serve event photos from folders on your machine
+# instead of S3. Copy to docker-compose.override.yml (git-ignored; Compose
+# loads it automatically) and point each event folder at your photos.
+#
+# Layout inside the container (one folder per event = the --prefix used by import_pkl):
+#   /photos/dataset/<event-folder>/<photo>.jpg   originals
+#   /photos/thumb/<event-folder>/<photo>.jpg     thumbnails (make_thumb.py)
+#   /photos/pkl/<event-folder>.pkl               face embeddings to import
+services:
+  web:
+    environment:
+      LOCAL_PHOTOS_ENABLED: "true"
+      LOCAL_PHOTO_IMAGES_DIR: /photos/dataset
+      LOCAL_PHOTO_THUMBNAILS_DIR: /photos/thumb
+    volumes:
+      - "C:/path/to/event1/dataset:/photos/dataset/event1:ro"
+      - "C:/path/to/event1/thumb:/photos/thumb/event1:ro"
+      - "C:/path/to/event1/faces.pkl:/photos/pkl/event1.pkl:ro"
