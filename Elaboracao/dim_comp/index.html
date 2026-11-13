@@ -1,0 +1,1418 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="API Django multimodelo (PostgreSQL + pgvector) em Docker na EC2, com documentação RUP">
+      
+      
+        <meta name="author" content="Nicholas Borges de Vasconcelos">
+      
+      
+        <link rel="canonical" href="https://projetos-de-extensao.github.io/PC_CDIA_26.2_8001_II/Elaboracao/dim_comp/">
+      
+      
+        <link rel="prev" href="../maps/">
+      
+      
+        <link rel="next" href="../dimrbd/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/ibmec_icon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+    
+    
+      
+        <title>Dimensionamento Computacional - PhotoMatch - Projeto de Cloud</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../css/extra.css">
+    
+      <link rel="stylesheet" href="../../assets/mkdocs_puml/puml.css">
+    
+      <link rel="stylesheet" href="../../assets/mkdocs_puml/interaction.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="#FAB90A" data-md-color-accent="#193257">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#dimensionamento-computacional-ec2-v10" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="PhotoMatch - Projeto de Cloud" class="md-header__button md-logo" aria-label="PhotoMatch - Projeto de Cloud" data-md-component="logo">
+      
+  <img src="../../assets/ibmec_logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PhotoMatch - Projeto de Cloud
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Dimensionamento Computacional
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="#FAB90A" data-md-color-accent="#193257"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="#193257" data-md-color-accent="#FAB90A"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5M7 15a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="all" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5M7 15a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Projetos-de-Extensao/PC_CDIA_26.2_8001_II" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    PC_CDIA_26.2_8001_II
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../Iniciacao/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Iniciação
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Elaboração
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../Transicao/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Transição
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="PhotoMatch - Projeto de Cloud" class="md-nav__button md-logo" aria-label="PhotoMatch - Projeto de Cloud" data-md-component="logo">
+      
+  <img src="../../assets/ibmec_logo.png" alt="logo">
+
+    </a>
+    PhotoMatch - Projeto de Cloud
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Projetos-de-Extensao/PC_CDIA_26.2_8001_II" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    PC_CDIA_26.2_8001_II
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../Iniciacao/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Iniciação
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Iniciação
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Iniciacao/dv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documento de Visão
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Iniciacao/rs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Requisitos Suplementares
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Elaboração
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Elaboração
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cua/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Casos de Uso Arquiteturais
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../maps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pacotes e Subsistemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dimensionamento Computacional
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dimensionamento Computacional
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#sbrt-photomatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SBrT PhotoMatch
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-objetivo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Objetivo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-medicoes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Medições
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-orcamento-de-memoria-no-pico" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Orçamento de memória no pico
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-comparacao-de-instancias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Comparação de instâncias
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-custo-mensal-estimado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Custo mensal estimado
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-classes-de-analise" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Classes de análise
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-ajustes-de-capacidade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Ajustes de capacidade
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-historico-de-versoes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Histórico de versões
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dimrbd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dimensionamento do Banco
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../seq_com/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sequência e Comunicação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../Transicao/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transição
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Transição
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Transicao/ativ_deploy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Atividades de Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Transicao/validacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validação do Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Elaboração
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="dimensionamento-computacional-ec2-v10">Dimensionamento Computacional (EC2) (v1.0)<a class="headerlink" href="#dimensionamento-computacional-ec2-v10" title="Permanent link">&para;</a></h1>
+<h2 id="sbrt-photomatch">SBrT PhotoMatch<a class="headerlink" href="#sbrt-photomatch" title="Permanent link">&para;</a></h2>
+<p><strong>Fase:</strong> Elaboração
+<strong>Data:</strong> 11/11/2026</p>
+<hr />
+<h2 id="1-objetivo">1. Objetivo<a class="headerlink" href="#1-objetivo" title="Permanent link">&para;</a></h2>
+<p>Escolher o tipo de instância EC2 que roda os containers <code>web</code> (Django + Gunicorn + dlib) e <code>db</code> (PostgreSQL 17 + pgvector) na mesma máquina, com base em medições feitas no ambiente Docker local em 11/11/2026.</p>
+<h2 id="2-medicoes">2. Medições<a class="headerlink" href="#2-medicoes" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Medida</th>
+<th>Valor</th>
+<th>Como foi medido</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Imagem <code>web</code></td>
+<td>1,41 GB</td>
+<td><code>docker image ls</code></td>
+</tr>
+<tr>
+<td>Imagem <code>pgvector/pgvector:pg17</code></td>
+<td>627 MB</td>
+<td><code>docker image ls</code></td>
+</tr>
+<tr>
+<td>Memória do <code>web</code> em repouso (Gunicorn, 3 workers)</td>
+<td>175 MB</td>
+<td><code>docker stats</code></td>
+</tr>
+<tr>
+<td>Memória do <code>db</code> em repouso</td>
+<td>26 MB</td>
+<td><code>docker stats</code></td>
+</tr>
+<tr>
+<td>Memória de um processo após carregar os modelos do dlib</td>
+<td>191 MB</td>
+<td><code>ru_maxrss</code> dentro do container</td>
+</tr>
+<tr>
+<td>Busca vetorial <code>POST /api/search/</code> (embedding pronto)</td>
+<td>p50 2,7 ms, p95 4,2 ms</td>
+<td>30 requisições dentro do container</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-orcamento-de-memoria-no-pico">3. Orçamento de memória no pico<a class="headerlink" href="#3-orcamento-de-memoria-no-pico" title="Permanent link">&para;</a></h2>
+<p>No pior caso, os três workers do Gunicorn atendem buscas por selfie ao mesmo tempo e cada um carrega o dlib.</p>
+<table>
+<thead>
+<tr>
+<th>Componente</th>
+<th>Memória</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ubuntu + Docker Engine</td>
+<td>400 MB</td>
+</tr>
+<tr>
+<td>PostgreSQL (<code>shared_buffers</code> 128 MB, conexões e cache)</td>
+<td>250 MB</td>
+</tr>
+<tr>
+<td>Gunicorn: processo mestre</td>
+<td>50 MB</td>
+</tr>
+<tr>
+<td>Gunicorn: 3 workers × 191 MB</td>
+<td>573 MB</td>
+</tr>
+<tr>
+<td>Margem para picos de imagem (decodificação de fotos de celular)</td>
+<td>300 MB</td>
+</tr>
+<tr>
+<td><strong>Total em operação</strong></td>
+<td><strong>≈ 1,6 GB</strong></td>
+</tr>
+</tbody>
+</table>
+<p>O build da imagem é o momento de maior uso: a compilação do dlib em C++ consome vários GB de RAM, e em instâncias de 2 GB pode ser encerrada por falta de memória.</p>
+<h2 id="4-comparacao-de-instancias">4. Comparação de instâncias<a class="headerlink" href="#4-comparacao-de-instancias" title="Permanent link">&para;</a></h2>
+<p>Preços on-demand de referência na região us-east-1 (conferir na AWS Pricing Calculator antes de contratar).</p>
+<table>
+<thead>
+<tr>
+<th>Tipo</th>
+<th>vCPU</th>
+<th>RAM</th>
+<th>US$/hora</th>
+<th>US$/mês (730 h)</th>
+<th>Uso de RAM em operação</th>
+<th>Build do dlib</th>
+<th>Decisão</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>t3.micro</td>
+<td>2</td>
+<td>1 GB</td>
+<td>0,0104</td>
+<td>7,59</td>
+<td>160%</td>
+<td>não cabe</td>
+<td>rejeitada</td>
+</tr>
+<tr>
+<td>t3.small</td>
+<td>2</td>
+<td>2 GB</td>
+<td>0,0208</td>
+<td>15,18</td>
+<td>80%</td>
+<td>só com swap</td>
+<td>alternativa econômica</td>
+</tr>
+<tr>
+<td><strong>t3.medium</strong></td>
+<td><strong>2</strong></td>
+<td><strong>4 GB</strong></td>
+<td><strong>0,0416</strong></td>
+<td><strong>30,37</strong></td>
+<td><strong>40%</strong></td>
+<td><strong>cabe</strong></td>
+<td><strong>escolhida</strong></td>
+</tr>
+<tr>
+<td>t3.large</td>
+<td>2</td>
+<td>8 GB</td>
+<td>0,0832</td>
+<td>60,74</td>
+<td>20%</td>
+<td>cabe</td>
+<td>superdimensionada</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Justificativa da t3.medium:</strong> mantém o uso de RAM em operação abaixo de 70% (RNF-CAP-01), compila o dlib sem swap e deixa folga para o PostgreSQL usar cache. A família t3 é burstable: o uso de CPU é baixo na maior parte do tempo e só sobe nas buscas por selfie, o que combina com o modelo de créditos de CPU.</p>
+<p><strong>Alternativa:</strong> t3.small com 2 GB de swap reduz o custo da instância para US$ 15,18/mês, ao custo de builds mais lentos e risco de troca para disco no pico.</p>
+<h2 id="5-custo-mensal-estimado">5. Custo mensal estimado<a class="headerlink" href="#5-custo-mensal-estimado" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Cálculo</th>
+<th>US$/mês</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EC2 t3.medium</td>
+<td>730 h × 0,0416</td>
+<td>30,37</td>
+</tr>
+<tr>
+<td>EBS gp3 20 GB (SO, imagens Docker, volume do banco)</td>
+<td>20 × 0,08</td>
+<td>1,60</td>
+</tr>
+<tr>
+<td>IPv4 público (ou Elastic IP associado)</td>
+<td>730 h × 0,005</td>
+<td>3,65</td>
+</tr>
+<tr>
+<td>S3: fotos do acervo (≈ 6 GB) e backups</td>
+<td>6 × 0,023</td>
+<td>0,14</td>
+</tr>
+<tr>
+<td>Transferência de saída</td>
+<td>primeiros 100 GB/mês gratuitos</td>
+<td>0,00</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td></td>
+<td><strong>≈ 35,76</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Fica dentro do teto de US$ 40 (RNF-CUS-01). Parar a instância fora dos períodos de uso reduz o custo da EC2 proporcionalmente, mas troca o IP público se não houver Elastic IP.</p>
+<h2 id="6-classes-de-analise">6. Classes de análise<a class="headerlink" href="#6-classes-de-analise" title="Permanent link">&para;</a></h2>
+<p>Classes de fronteira (boundary), controle e entidade do PhotoMatch e o nó de execução de cada uma.</p>
+<div class='puml-container'><div class="puml light" style=""><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" data-diagram-type="CLASS" style="width:1370px;height:691px;background:#FFFFFF;" width="1370px" height="691px" viewBox="0 0 1370 691" zoomAndPan="magnify" preserveAspectRatio="xMidYMid meet" contentStyleType="text/css" class="diagram"><?plantuml 1.2026.9beta4?><defs/><g font-family="sans-serif" lengthAdjust="spacing"><g class="cluster" data-qualified-name="Container web .EC2." id="ent0001" data-source-line="5"><path d="M8.5,6 L171.238,6 A3.75,3.75 0 0 1 173.738,8.5 L180.738,28.297 L800.5,28.297 A2.5,2.5 0 0 1 803,30.797 L803,335.22 A2.5,2.5 0 0 1 800.5,337.72 L8.5,337.72 A2.5,2.5 0 0 1 6,335.22 L6,8.5 A2.5,2.5 0 0 1 8.5,6" style="stroke:#000;stroke-width:1.5;" fill="none"/><line x1="6" y1="28.297" x2="180.738" y2="28.297" style="stroke:#000;stroke-width:1.5;"/><text x="10" y="20.995" fill="#000" font-size="14" textLength="161.738" font-weight="700">Container web (EC2)</text></g><g class="cluster" data-qualified-name="Container web .EC2..SearchPage .search" id="ent0005" data-source-line="14"><path d="M32.5,49 L190.638,49 A3.75,3.75 0 0 1 193.138,51.5 L200.138,71.297 L209.5,71.297 A2.5,2.5 0 0 1 212,73.797 L212,170.06 A2.5,2.5 0 0 1 209.5,172.56 L32.5,172.56 A2.5,2.5 0 0 1 30,170.06 L30,51.5 A2.5,2.5 0 0 1 32.5,49" style="stroke:#000;stroke-width:1.5;" fill="none"/><line x1="30" y1="71.297" x2="200.138" y2="71.297" style="stroke:#000;stroke-width:1.5;"/><text x="34" y="63.995" fill="#000" font-size="14" textLength="157.138" font-weight="700">SearchPage (search</text></g><g class="cluster" data-qualified-name="Container db .EC2." id="ent0009" data-source-line="28"><path d="M1026.5,24.56 L1176.831,24.56 A3.75,3.75 0 0 1 1179.331,27.06 L1186.331,46.857 L1352.5,46.857 A2.5,2.5 0 0 1 1355,49.357 L1355,673.68 A2.5,2.5 0 0 1 1352.5,676.18 L1026.5,676.18 A2.5,2.5 0 0 1 1024,673.68 L1024,27.06 A2.5,2.5 0 0 1 1026.5,24.56" style="stroke:#000;stroke-width:1.5;" fill="none"/><line x1="1024" y1="46.857" x2="1186.331" y2="46.857" style="stroke:#000;stroke-width:1.5;"/><text x="1028" y="39.555" fill="#000" font-size="14" textLength="149.331" font-weight="700">Container db (EC2)</text></g><g class="cluster" data-qualified-name="SearchPage .search" id="ent0020" data-source-line="61"><path d="M829.5,61.28 L987.638,61.28 A3.75,3.75 0 0 1 990.138,63.78 L997.138,83.577 L997.5,83.577 A2.5,2.5 0 0 1 1000,86.077 L1000,157.78 A2.5,2.5 0 0 1 997.5,160.28 L829.5,160.28 A2.5,2.5 0 0 1 827,157.78 L827,63.78 A2.5,2.5 0 0 1 829.5,61.28" style="stroke:#000;stroke-width:1.5;" fill="none"/><line x1="827" y1="83.577" x2="997.138" y2="83.577" style="stroke:#000;stroke-width:1.5;"/><text x="831" y="76.275" fill="#000" font-size="14" textLength="157.138" font-weight="700">SearchPage (search</text></g><g class="entity" data-qualified-name="Container web .EC2..PhotoViewSet" id="ent0002" data-source-line="6"><rect x="231.77" y="67.7" width="128.455" height="105.156" fill="#F1F1F1" style="stroke:#181818;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="246.77" cy="87.833" rx="11" ry="11" fill="#ADD1B2" style="stroke:#181818;stroke-width:1;"/><path d="M249.739,93.473 Q249.161,93.77 248.52,93.911 Q247.879,94.067 247.176,94.067 Q244.676,94.067 243.348,92.427 Q242.036,90.77 242.036,87.645 Q242.036,84.52 243.348,82.864 Q244.676,81.208 247.176,81.208 Q247.879,81.208 248.52,81.364 Q249.176,81.52 249.739,81.817 L249.739,84.536 Q249.114,83.958 248.52,83.692 Q247.926,83.411 247.301,83.411 Q245.958,83.411 245.27,84.489 Q244.583,85.552 244.583,87.645 Q244.583,89.739 245.27,90.817 Q245.958,91.88 247.301,91.88 Q247.926,91.88 248.52,91.614 Q249.114,91.333 249.739,90.755 L249.739,93.473 Z " fill="#000"/><text x="273.068" y="83.839" fill="#000" font-size="12" textLength="71.859" font-style="italic">«boundary»</text><text x="260.77" y="99.664" fill="#000" font-size="14" textLength="96.455">PhotoViewSet</text><line x1="232.77" y1="107.966" x2="359.225" y2="107.966" style="stroke:#181818;stroke-width:0.5;"/><line x1="232.77" y1="115.966" x2="359.225" y2="115.966" style="stroke:#181818;stroke-width:0.5;"/><text x="237.77" y="132.961" fill="#000" font-size="14" textLength="43.217">+list()</text><text x="237.77" y="149.258" fill="#000" font-size="14" textLength="67.402">+create()</text><text x="237.77" y="165.554" fill="#000" font-size="14" textLength="65.7">+ingest()</text></g><g class="entity" data-qualified-name="Container web .EC2..similarity_search" id="ent0003" data-source-line="11"><rect x="486.36" y="84" width="201.287" height="72.563" fill="#F1F1F1" style="stroke:#181818;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="524.254" cy="104.133" rx="11" ry="11" fill="#ADD1B2" style="stroke:#181818;stroke-width:1;"/><path d="M527.223,109.773 Q526.644,110.07 526.004,110.211 Q525.363,110.367 524.66,110.367 Q522.16,110.367 520.832,108.727 Q519.519,107.07 519.519,103.945 Q519.519,100.82 520.832,99.164 Q522.16,97.508 524.66,97.508 Q525.363,97.508 526.004,97.664 Q526.66,97.82 527.223,98.117 L527.223,100.836 Q526.598,100.258 526.004,99.992 Q525.41,99.711 524.785,99.711 Q523.441,99.711 522.754,100.789 Q522.066,101.852 522.066,103.945 Q522.066,106.039 522.754,107.117 Q523.441,108.18 524.785,108.18 Q525.41,108.18 526.004,107.914 Q526.598,107.633 527.223,107.055 L527.223,109.773 Z " fill="#000"/><text x="566.618" y="100.139" fill="#000" font-size="12" textLength="71.859" font-style="italic">«boundary»</text><text x="543.341" y="115.964" fill="#000" font-size="14" textLength="118.412">similarity_search</text><line x1="487.36" y1="124.266" x2="686.647" y2="124.266" style="stroke:#181818;stroke-width:0.5;"/><line x1="487.36" y1="132.266" x2="686.647" y2="132.266" style="stroke:#181818;stroke-width:0.5;"/><text x="492.36" y="149.261" fill="#000" font-size="14" textLength="189.287">+post(embedding | image)</text></g><g class="entity" data-qualified-name="Container web .EC2..IngestService" id="ent0006" data-source-line="17"><rect x="22.23" y="249.16" width="187.533" height="72.563" fill="#F1F1F1" style="stroke:#181818;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="64.458" cy="269.293" rx="11" ry="11" fill="#ADD1B2" style="stroke:#181818;stroke-width:1;"/><path d="M67.427,274.933 Q66.849,275.23 66.208,275.371 Q65.567,275.527 64.864,275.527 Q62.364,275.527 61.036,273.887 Q59.724,272.23 59.724,269.105 Q59.724,265.98 61.036,264.324 Q62.364,262.668 64.864,262.668 Q65.567,262.668 66.208,262.824 Q66.864,262.98 67.427,263.277 L67.427,265.996 Q66.802,265.418 66.208,265.152 Q65.614,264.871 64.989,264.871 Q63.646,264.871 62.958,265.949 Q62.271,267.012 62.271,269.105 Q62.271,271.199 62.958,272.277 Q63.646,273.34 64.989,273.34 Q65.614,273.34 66.208,273.074 Q66.802,272.793 67.427,272.215 L67.427,274.933 Z " fill="#000"/><text x="103.75" y="265.299" fill="#000" font-size="12" textLength="56.543" font-style="italic">«control»</text><text x="84.509" y="281.124" fill="#000" font-size="14" textLength="95.026">IngestService</text><line x1="23.23" y1="289.426" x2="208.763" y2="289.426" style="stroke:#181818;stroke-width:0.5;"/><line x1="23.23" y1="297.426" x2="208.763" y2="297.426" style="stroke:#181818;stroke-width:0.5;"/><text x="28.23" y="314.421" fill="#000" font-size="14" textLength="175.533">+ingest_photo(...): Photo</text></g><g class="entity" data-qualified-name="Container web .EC2..SimilarityService" id="ent0007" data-source-line="20"><rect x="244.31" y="249.16" width="289.389" height="72.563" fill="#F1F1F1" style="stroke:#181818;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="325.788" cy="269.293" rx="11" ry="11" fill="#ADD1B2" style="stroke:#181818;stroke-width:1;"/><path d="M328.756,274.933 Q328.178,275.23 327.538,275.371 Q326.897,275.527 326.194,275.527 Q323.694,275.527 322.366,273.887 Q321.053,272.23 321.053,269.105 Q321.053,265.98 322.366,264.324 Q323.694,262.668 326.194,262.668 Q326.897,262.668 327.538,262.824 Q328.194,262.98 328.756,263.277 L328.756,265.996 Q328.131,265.418 327.538,265.152 Q326.944,264.871 326.319,264.871 Q324.975,264.871 324.288,265.949 Q323.6,267.012 323.6,269.105 Q323.6,271.199 324.288,272.277 Q324.975,273.34 326.319,273.34 Q326.944,273.34 327.538,273.074 Q328.131,272.793 328.756,272.215 L328.756,274.933 Z " fill="#000"/><text x="376.983" y="265.299" fill="#000" font-size="12" textLength="56.543" font-style="italic">«control»</text><text x="346.288" y="281.124" fill="#000" font-size="14" textLength="117.934">SimilarityService</text><line x1="245.31" y1="289.426" x2="532.699" y2="289.426" style="stroke:#181818;stroke-width:0.5;"/><line x1="245.31" y1="297.426" x2="532.699" y2="297.426" style="stroke:#181818;stroke-width:0.5;"/><text x="250.31" y="314.421" fill="#000" font-size="14" textLength="277.389">+find_similar_photos(vector, threshold)</text></g><g class="entity" data-qualified-name="Container web .EC2..FaceEngine" id="ent0008" data-source-line="23"><rect x="569.18" y="249.16" width="217.646" height="72.563" fill="#F1F1F1" style="stroke:#181818;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="633.291" cy="269.293" rx="11" ry="11" fill="#ADD1B2" style="stroke:#181818;stroke-width:1;"/><path d="M636.26,274.933 Q635.681,275.23 635.041,275.371 Q634.4,275.527 633.697,275.527 Q631.197,275.527 629.869,273.887 Q628.556,272.23 628.556,269.105 Q628.556,265.98 629.869,264.324 Q631.197,262.668 633.697,262.668 Q634.4,262.668 635.041,262.824 Q635.697,262.98 636.26,263.277 L636.26,265.996 Q635.635,265.418 635.041,265.152 Q634.447,264.871 633.822,264.871 Q632.478,264.871 631.791,265.949 Q631.103,267.012 631.103,269.105 Q631.103,271.199 631.791,272.277 Q632.478,273.34 633.822,273.34 Q634.447,273.34 635.041,273.074 Q635.635,272.793 636.26,272.215 L636.26,274.933 Z " fill="#000"/><text x="665.981" y="265.299" fill="#000" font-size="12" textLength="56.543" font-style="italic">«control»</text><text x="653.791" y="281.124" fill="#000" font-size="14" textLength="80.924">FaceEngine</text><line x1="570.18" y1="289.426" x2="785.826" y2="289.426" style="stroke:#181818;stroke-width:0.5;"/><line x1="570.18" y1="297.426" x2="785.826" y2="297.426" style="stroke:#181818;stroke-width:0.5;"/><text x="575.18" y="314.421" fill="#000" font-size="14" textLength="205.646">+get_query_embedding(img)</text></g><g class="entity" data-qualified-name="Container web .EC2..SearchPage .search.views." id="ent0004" data-source-line="14"><rect x="45.59" y="84" width="150.811" height="72.563" fill="#F1F1F1" style="stroke:#181818;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="83.518" cy="104.133" rx="11" ry="11" fill="#ADD1B2" style="stroke:#181818;stroke-width:1;"/><path d="M86.487,109.773 Q85.909,110.07 85.268,110.211 Q84.627,110.367 83.924,110.367 Q81.424,110.367 80.096,108.727 Q78.784,107.07 78.784,103.945 Q78.784,100.82 80.096,99.164 Q81.424,97.508 83.924,97.508 Q84.627,97.508 85.268,97.664 Q85.924,97.82 86.487,98.117 L86.487,100.836 Q85.862,100.258 85.268,99.992 Q84.674,99.711 84.049,99.711 Q82.706,99.711 82.018,100.789 Q81.331,101.852 81.331,103.945 Q81.331,106.039 82.018,107.117 Q82.706,108.18 84.049,108.18 Q84.674,108.18 85.268,107.914 Q85.862,107.633 86.487,107.055 L86.487,109.773 Z " fill="#000"/><text x="100.613" y="100.139" fill="#000" font-size="12" textLength="71.859" font-style="italic">«boundary»</text><text x="114.046" y="115.964" fill="#000" font-size="14" textLength="44.994">views)</text><line x1="46.59" y1="124.266" x2="195.401" y2="124.266" style="stroke:#181818;stroke-width:0.5;"/><line x1="46.59" y1="132.266" x2="195.401" y2="132.266" style="stroke:#181818;stroke-width:0.5;"/><text x="51.59" y="149.261" fill="#000" font-size="14" textLength="138.811">+home_view(selfie)</text></g><g class="entity" data-qualified-name="Container db .EC2..Event" id="ent0010" data-source-line="29"><rect x="1083.24" y="59.56" width="77.518" height="121.453" fill="#F1F1F1" style="stroke:#181818;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="1098.24" cy="79.693" rx="11" ry="11" fill="#ADD1B2" style="stroke:#181818;stroke-width:1;"/><path d="M1101.209,85.333 Q1100.631,85.63 1099.99,85.771 Q1099.349,85.927 1098.646,85.927 Q1096.146,85.927 1094.818,84.287 Q1093.506,82.63 1093.506,79.505 Q1093.506,76.38 1094.818,74.724 Q1096.146,73.068 1098.646,73.068 Q1099.349,73.068 1099.99,73.224 Q1100.646,73.38 1101.209,73.677 L1101.209,76.396 Q1100.584,75.818 1099.99,75.552 Q1099.396,75.271 1098.771,75.271 Q1097.428,75.271 1096.74,76.349 Q1096.053,77.412 1096.053,79.505 Q1096.053,81.599 1096.74,82.677 Q1097.428,83.74 1098.771,83.74 Q1099.396,83.74 1099.99,83.474 Q1100.584,83.193 1101.209,82.615 L1101.209,85.333 Z " fill="#000"/><text x="1110.24" y="75.699" fill="#000" font-size="12" textLength="49.518" font-style="italic">«entity»</text><text x="1114.946" y="91.524" fill="#000" font-size="14" textLength="40.106">Event</text><line x1="1084.24" y1="99.826" x2="1159.758" y2="99.826" style="stroke:#181818;stroke-width:0.5;"/><text x="1089.24" y="116.821" fill="#000" font-size="14" textLength="39.703">name</text><text x="1089.24" y="133.118" fill="#000" font-size="14" textLength="28.943">slug</text><text x="1089.24" y="149.414" fill="#000" font-size="14" textLength="64.34">starts_on</text><text x="1089.24" y="165.711" fill="#000" font-size="14" textLength="58.105">ends_on</text><line x1="1084.24" y1="173.013" x2="1159.758" y2="173.013" style="stroke:#181818;stroke-width:0.5;"/></g><g class="entity" data-qualified-name="Container db .EC2..Session" id="ent0011" data-source-line="35"><rect x="1040.29" y="241.01" width="85.416" height="88.859" fill="#F1F1F1" style="stroke:#181818;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="1055.29" cy="261.143" rx="11" ry="11" fill="#ADD1B2" style="stroke:#181818;stroke-width:1;"/><path d="M1058.259,266.783 Q1057.681,267.08 1057.04,267.221 Q1056.399,267.377 1055.696,267.377 Q1053.196,267.377 1051.868,265.737 Q1050.556,264.08 1050.556,260.955 Q1050.556,257.83 1051.868,256.174 Q1053.196,254.518 1055.696,254.518 Q1056.399,254.518 1057.04,254.674 Q1057.696,254.83 1058.259,255.127 L1058.259,257.846 Q1057.634,257.268 1057.04,257.002 Q1056.446,256.721 1055.821,256.721 Q1054.478,256.721 1053.79,257.799 Q1053.103,258.862 1053.103,260.955 Q1053.103,263.049 1053.79,264.127 Q1054.478,265.19 1055.821,265.19 Q1056.446,265.19 1057.04,264.924 Q1057.634,264.643 1058.259,264.065 L1058.259,266.783 Z " fill="#000"/><text x="1071.239" y="257.149" fill="#000" font-size="12" textLength="49.518" font-style="italic">«entity»</text><text x="1069.29" y="272.974" fill="#000" font-size="14" textLength="53.416">Session</text><line x1="1041.29" y1="281.276" x2="1124.706" y2="281.276" style="stroke:#181818;stroke-width:0.5;"/><text x="1046.29" y="298.271" fill="#000" font-size="14" textLength="27.371">title</text><text x="1046.29" y="314.568" fill="#000" font-size="14" textLength="25.751">day</text><line x1="1041.29" y1="321.869" x2="1124.706" y2="321.869" style="stroke:#181818;stroke-width:0.5;"/></g><g class="entity" data-qualified-name="Container db .EC2..Photographer" id="ent0012" data-source-line="39"><rect x="1198.36" y="241.01" width="127.286" height="88.859" fill="#F1F1F1" style="stroke:#181818;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="1213.36" cy="261.143" rx="11" ry="11" fill="#ADD1B2" style="stroke:#181818;stroke-width:1;"/><path d="M1216.329,266.783 Q1215.751,267.08 1215.11,267.221 Q1214.469,267.377 1213.766,267.377 Q1211.266,267.377 1209.938,265.737 Q1208.626,264.08 1208.626,260.955 Q1208.626,257.83 1209.938,256.174 Q1211.266,254.518 1213.766,254.518 Q1214.469,254.518 1215.11,254.674 Q1215.766,254.83 1216.329,255.127 L1216.329,257.846 Q1215.704,257.268 1215.11,257.002 Q1214.516,256.721 1213.891,256.721 Q1212.548,256.721 1211.86,257.799 Q1211.173,258.862 1211.173,260.955 Q1211.173,263.049 1211.86,264.127 Q1212.548,265.19 1213.891,265.19 Q1214.516,265.19 1215.11,264.924 Q1215.704,264.643 1216.329,264.065 L1216.329,266.783 Z " fill="#000"/><text x="1250.244" y="257.149" fill="#000" font-size="12" textLength="49.518" font-style="italic">«entity»</text><text x="1227.36" y="272.974" fill="#000" font-size="14" textLength="95.286">Photographer</text><line x1="1199.36" y1="281.276" x2="1324.646" y2="281.276" style="stroke:#181818;stroke-width:0.5;"/><text x="1204.36" y="298.271" fill="#000" font-size="14" textLength="39.703">name</text><text x="1204.36" y="314.568" fill="#000" font-size="14" textLength="38.609">email</text><line x1="1199.36" y1="321.869" x2="1324.646" y2="321.869" style="stroke:#181818;stroke-width:0.5;"/></g><g class="entity" data-qualified-name="Container db .EC2..Tag" id="ent0013" data-source-line="43"><rect x="1040.24" y="571.32" width="77.518" height="72.563" fill="#F1F1F1" style="stroke:#181818;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="1055.24" cy="591.453" rx="11" ry="11" fill="#ADD1B2" style="stroke:#181818;stroke-width:1;"/><path d="M1058.209,597.093 Q1057.631,597.39 1056.99,597.531 Q1056.349,597.687 1055.646,597.687 Q1053.146,597.687 1051.818,596.047 Q1050.506,594.39 1050.506,591.265 Q1050.506,588.14 1051.818,586.484 Q1053.146,584.828 1055.646,584.828 Q1056.349,584.828 1056.99,584.984 Q1057.646,585.14 1058.209,585.437 L1058.209,588.156 Q1057.584,587.578 1056.99,587.312 Q1056.396,587.031 1055.771,587.031 Q1054.428,587.031 1053.74,588.109 Q1053.053,589.172 1053.053,591.265 Q1053.053,593.359 1053.74,594.437 Q1054.428,595.5 1055.771,595.5 Q1056.396,595.5 1056.99,595.234 Q1057.584,594.953 1058.209,594.375 L1058.209,597.093 Z " fill="#000"/><text x="1067.24" y="587.459" fill="#000" font-size="12" textLength="49.518" font-style="italic">«entity»</text><text x="1078.99" y="603.284" fill="#000" font-size="14" textLength="26.018">Tag</text><line x1="1041.24" y1="611.586" x2="1116.758" y2="611.586" style="stroke:#181818;stroke-width:0.5;"/><text x="1046.24" y="628.581" fill="#000" font-size="14" textLength="39.703">name</text><line x1="1041.24" y1="635.882" x2="1116.758" y2="635.882" style="stroke:#181818;stroke-width:0.5;"/></g><g class="entity" data-qualified-name="Container db .EC2..Photo" id="ent0014" data-source-line="46"><rect x="1067.51" y="389.87" width="130.979" height="105.156" fill="#F1F1F1" style="stroke:#181818;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="1106.568" cy="410.003" rx="11" ry="11" fill="#ADD1B2" style="stroke:#181818;stroke-width:1;"/><path d="M1109.537,415.643 Q1108.958,415.94 1108.318,416.081 Q1107.677,416.237 1106.974,416.237 Q1104.474,416.237 1103.146,414.597 Q1101.833,412.94 1101.833,409.815 Q1101.833,406.69 1103.146,405.034 Q1104.474,403.378 1106.974,403.378 Q1107.677,403.378 1108.318,403.534 Q1108.974,403.69 1109.537,403.987 L1109.537,406.706 Q1108.912,406.128 1108.318,405.862 Q1107.724,405.581 1107.099,405.581 Q1105.755,405.581 1105.068,406.659 Q1104.38,407.722 1104.38,409.815 Q1104.38,411.909 1105.068,412.987 Q1105.755,414.05 1107.099,414.05 Q1107.724,414.05 1108.318,413.784 Q1108.912,413.503 1109.537,412.925 L1109.537,415.643 Z " fill="#000"/><text x="1123.914" y="406.009" fill="#000" font-size="12" textLength="49.518" font-style="italic">«entity»</text><text x="1128.705" y="421.834" fill="#000" font-size="14" textLength="39.936">Photo</text><line x1="1068.51" y1="430.136" x2="1197.489" y2="430.136" style="stroke:#181818;stroke-width:0.5;"/><text x="1073.51" y="447.131" fill="#000" font-size="14" textLength="90.31">image_name</text><text x="1073.51" y="463.428" fill="#000" font-size="14" textLength="60.73">taken_at</text><text x="1073.51" y="479.724" fill="#000" font-size="14" textLength="118.979">metadata : jsonb</text><line x1="1068.51" y1="487.026" x2="1197.489" y2="487.026" style="stroke:#181818;stroke-width:0.5;"/></g><g class="entity" data-qualified-name="Container db .EC2..Face" id="ent0015" data-source-line="51"><rect x="1152.58" y="555.02" width="186.843" height="105.156" fill="#F1F1F1" style="stroke:#181818;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="1218.993" cy="575.153" rx="11" ry="11" fill="#ADD1B2" style="stroke:#181818;stroke-width:1;"/><path d="M1221.961,580.793 Q1221.383,581.09 1220.743,581.231 Q1220.102,581.387 1219.399,581.387 Q1216.899,581.387 1215.571,579.747 Q1214.258,578.09 1214.258,574.965 Q1214.258,571.84 1215.571,570.184 Q1216.899,568.528 1219.399,568.528 Q1220.102,568.528 1220.743,568.684 Q1221.399,568.84 1221.961,569.137 L1221.961,571.856 Q1221.336,571.278 1220.743,571.012 Q1220.149,570.731 1219.524,570.731 Q1218.18,570.731 1217.493,571.809 Q1216.805,572.872 1216.805,574.965 Q1216.805,577.059 1217.493,578.137 Q1218.18,579.2 1219.524,579.2 Q1220.149,579.2 1220.743,578.934 Q1221.336,578.653 1221.961,578.075 L1221.961,580.793 Z " fill="#000"/><text x="1237.493" y="571.159" fill="#000" font-size="12" textLength="49.518" font-style="italic">«entity»</text><text x="1245.78" y="586.984" fill="#000" font-size="14" textLength="32.942">Face</text><line x1="1153.58" y1="595.286" x2="1338.423" y2="595.286" style="stroke:#181818;stroke-width:0.5;"/><text x="1158.58" y="612.281" fill="#000" font-size="14" textLength="75.366">face_index</text><text x="1158.58" y="628.578" fill="#000" font-size="14" textLength="85.75">bbox : jsonb</text><line x1="1153.58" y1="635.879" x2="1338.423" y2="635.879" style="stroke:#181818;stroke-width:0.5;"/><text x="1158.58" y="652.874" fill="#000" font-size="14" textLength="174.843">embedding : vector(128)</text></g><g class="entity" data-qualified-name="SearchPage .search.views." id="ent0019" data-source-line="61"><rect x="842.5" y="96.28" width="76.994" height="48" fill="#F1F1F1" style="stroke:#181818;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="857.5" cy="112.28" rx="11" ry="11" fill="#ADD1B2" style="stroke:#181818;stroke-width:1;"/><path d="M860.469,117.921 Q859.891,118.217 859.25,118.358 Q858.609,118.514 857.906,118.514 Q855.406,118.514 854.078,116.874 Q852.766,115.217 852.766,112.092 Q852.766,108.967 854.078,107.311 Q855.406,105.655 857.906,105.655 Q858.609,105.655 859.25,105.811 Q859.906,105.967 860.469,106.264 L860.469,108.983 Q859.844,108.405 859.25,108.139 Q858.656,107.858 858.031,107.858 Q856.688,107.858 856,108.936 Q855.313,109.999 855.313,112.092 Q855.313,114.186 856,115.264 Q856.688,116.327 858.031,116.327 Q858.656,116.327 859.25,116.061 Q859.844,115.78 860.469,115.202 L860.469,117.921 Z " fill="#000"/><text x="871.5" y="117.127" fill="#000" font-size="14" textLength="44.994">views)</text><line x1="843.5" y1="128.28" x2="918.494" y2="128.28" style="stroke:#181818;stroke-width:0.5;"/><line x1="843.5" y1="136.28" x2="918.494" y2="136.28" style="stroke:#181818;stroke-width:0.5;"/></g><g class="link" data-entity-1="ent0002" data-entity-2="ent0006" id="lnk16" data-source-line="58" data-link-type="dependency"><path d="M238.55,173.35 C211.39,197.97 183.365,223.382 158.995,245.472" style="stroke:#181818;stroke-width:1;" fill="none" id="PhotoViewSet-to-IngestService" codeLine="58"/><polygon points="155.29,248.83,164.645,245.749,158.995,245.472,159.272,239.822,155.29,248.83" fill="#181818" style="stroke:#181818;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"/></g><g class="link" data-entity-1="ent0003" data-entity-2="ent0007" id="lnk17" data-source-line="59" data-link-type="dependency"><path d="M544.04,156.68 C510.94,183.96 469.239,218.321 436.079,245.641" style="stroke:#181818;stroke-width:1;" fill="none" id="similarity_search-to-SimilarityService" codeLine="59"/><polygon points="432.22,248.82,441.71,246.184,436.079,245.641,436.623,240.01,432.22,248.82" fill="#181818" style="stroke:#181818;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"/></g><g class="link" data-entity-1="ent0003" data-entity-2="ent0008" id="lnk18" data-source-line="60" data-link-type="dependency"><path d="M606.75,156.68 C621.96,183.96 640.453,217.134 655.703,244.454" style="stroke:#181818;stroke-width:1;" fill="none" id="similarity_search-to-FaceEngine" codeLine="60"/><polygon points="658.14,248.82,657.246,239.012,655.703,244.454,650.261,242.911,658.14,248.82" fill="#181818" style="stroke:#181818;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"/></g><g class="link" data-entity-1="ent0019" data-entity-2="ent0008" id="lnk21" data-source-line="61" data-link-type="dependency"><path d="M851.92,144.66 C818.04,171.89 765.608,214.028 726.258,245.648" style="stroke:#181818;stroke-width:1;" fill="none" id="views)-to-FaceEngine" codeLine="61"/><polygon points="722.36,248.78,731.881,246.261,726.258,245.648,726.87,240.024,722.36,248.78" fill="#181818" style="stroke:#181818;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"/></g><g class="link" data-entity-1="ent0019" data-entity-2="ent0007" id="lnk22" data-source-line="62" data-link-type="dependency"><path d="M856.1,144.7 C841.6,157.16 822.41,171.78 803,181.01 C699.43,230.28 663.2,212.91 552,241.01 C542.2,243.48 536.93,244.824 526.76,247.464" style="stroke:#181818;stroke-width:1;" fill="none" id="views)-to-SimilarityService" codeLine="62"/><polygon points="521.92,248.72,531.636,250.33,526.76,247.464,529.626,242.587,521.92,248.72" fill="#181818" style="stroke:#181818;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"/></g><g class="link" data-entity-1="ent0006" data-entity-2="ent0014" id="lnk23" data-source-line="63" data-link-type="dependency"><path d="M172.64,322.08 C189.55,331.21 208.52,340.04 227,345.72 C247.15,351.91 857.435,413.709 1062.355,434.349" style="stroke:#181818;stroke-width:1;" fill="none" id="IngestService-to-Photo" codeLine="63"/><polygon points="1067.33,434.85,1058.776,429.968,1062.355,434.349,1057.974,437.928,1067.33,434.85" fill="#181818" style="stroke:#181818;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"/></g><g class="link" data-entity-1="ent0006" data-entity-2="ent0013" id="lnk24" data-source-line="64" data-link-type="dependency"><path d="M180.69,322.14 C195.77,330.13 211.85,338.41 227,345.72 C377.48,418.31 413.02,443.65 572,495.02 C742.45,550.1 948.892,586.123 1034.912,599.833" style="stroke:#181818;stroke-width:1;" fill="none" id="IngestService-to-Tag" codeLine="64"/><polygon points="1039.85,600.62,1031.592,595.253,1034.912,599.833,1030.333,603.154,1039.85,600.62" fill="#181818" style="stroke:#181818;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"/></g><g class="link" data-entity-1="ent0006" data-entity-2="ent0015" id="lnk25" data-source-line="65" data-link-type="dependency"><path d="M174.65,322.13 C191.12,330.93 209.36,339.58 227,345.72 C331.09,381.93 366.51,354.83 471,389.87 C569.21,422.8 580.02,464.47 679,495.02 C874.32,555.33 938.71,497.96 1135,555.02 C1140.71,556.68 1141.797,556.902 1147.587,558.992" style="stroke:#181818;stroke-width:1;" fill="none" id="IngestService-to-Face" codeLine="65"/><polygon points="1152.29,560.69,1145.183,553.872,1147.587,558.992,1142.467,561.397,1152.29,560.69" fill="#181818" style="stroke:#181818;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"/></g><g class="link" data-entity-1="ent0007" data-entity-2="ent0015" id="lnk26" data-source-line="66" data-link-type="dependency"><path d="M486.81,322.08 C508.28,329.89 530.9,338.1 552,345.72 C810.92,439.28 880.35,450.4 1135,555.02 C1140.6,557.33 1141.743,557.759 1147.503,560.259" style="stroke:#181818;stroke-width:1;" fill="none" id="SimilarityService-to-Face" codeLine="66"/><polygon points="1152.09,562.25,1145.427,554.997,1147.503,560.259,1142.242,562.336,1152.09,562.25" fill="#181818" style="stroke:#181818;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"/></g><g class="link" data-entity-1="ent0010" data-entity-2="ent0011" id="lnk27" data-source-line="68" data-link-type="association"><path d="M1107.7,181.11 C1102.98,200.84 1097.83,222.41 1093.45,240.71" style="stroke:#181818;stroke-width:1;" fill="none" id="Event-Session" codeLine="68"/><text x="1097.6" y="201.084" fill="#000" font-size="13">1</text><text x="1088.629" y="229.789" fill="#000" font-size="13">*</text></g><g class="link" data-entity-1="ent0010" data-entity-2="ent0014" id="lnk28" data-source-line="69" data-link-type="association"><path d="M1134.63,181.31 C1138.06,200.31 1141.3,221.46 1143,241.01 C1147.04,287.37 1145.42,299.24 1143,345.72 C1142.25,360.07 1140.88,375.58 1139.38,389.86" style="stroke:#181818;stroke-width:1;" fill="none" id="Event-Photo" codeLine="69"/><text x="1127.589" y="200.879" fill="#000" font-size="13">1</text><text x="1133.868" y="378.861" fill="#000" font-size="13">*</text></g><g class="link" data-entity-1="ent0011" data-entity-2="ent0014" id="lnk29" data-source-line="70" data-link-type="association"><path d="M1097.06,330.03 C1103.01,348.48 1109.99,370.11 1116.21,389.39" style="stroke:#181818;stroke-width:1;" fill="none" id="Session-Photo" codeLine="70"/><text x="1073.438" y="350.083" fill="#000" font-size="13" textLength="24.807">0..1</text><text x="1107.706" y="378.706" fill="#000" font-size="13">*</text></g><g class="link" data-entity-1="ent0012" data-entity-2="ent0014" id="lnk30" data-source-line="71" data-link-type="association"><path d="M1225.72,330.03 C1210.37,348.48 1192.36,370.11 1176.32,389.39" style="stroke:#181818;stroke-width:1;" fill="none" id="Photographer-Photo" codeLine="71"/><text x="1194.388" y="350.083" fill="#000" font-size="13" textLength="24.807">0..1</text><text x="1175.518" y="378.706" fill="#000" font-size="13">*</text></g><g class="link" data-entity-1="ent0014" data-entity-2="ent0013" id="lnk31" data-source-line="72" data-link-type="association"><path d="M1115.77,495.52 C1107.62,520.14 1098.1,548.9 1090.79,570.99" style="stroke:#181818;stroke-width:1;" fill="none" id="Photo-Tag" codeLine="72"/><text x="1107.335" y="514.977" fill="#000" font-size="13">*</text><text x="1086.4" y="560.211" fill="#000" font-size="13">*</text></g><g class="link" data-entity-1="ent0014" data-entity-2="ent0015" id="lnk32" data-source-line="73" data-link-type="association"><path d="M1169.06,495.52 C1182.18,514.45 1196.99,535.83 1210.08,554.74" style="stroke:#181818;stroke-width:1;" fill="none" id="Photo-Face" codeLine="73"/><text x="1164.984" y="514.977" fill="#000" font-size="13">1</text><text x="1199.125" y="544.082" fill="#000" font-size="13">*</text></g><?plantuml-src bPDDQzmm48Rl_XMgJzwsiPESoX829QGGIY6mfLSpjcPjTVNXIkFTRDlyzqhoVditq8lGIA-UUQKPlHEwbZr7rX9rRbeK5bPv8wZjgzwXhOqcr9JNHXNVnA858RzQM2AvGYsugLtPzKeM2XoXBQX5XQxWE8TUKY55qr8U18bR2Ds11SLg2Svz9hAYwWcVV8AP-8ti-a3YMk1c9NJ3vY0T9aa7zG8QPEc3jmD2esKhh5Zs-70xITcVX0rKbZwtXimFWQiPKihkxYhJQmvsVNyVLOnzaC9HDXdcjKKWt4O-7sxsNlT49vIGO0MjIuTWw_OyjZF-AAeAEG--_pAXlE4JrYm2diDDiW6MBxrNDpdFR8t2CWYyMCx5AUqf-fsXNOeQ0o7KoXgv1mmtAhlmA5cUvvCfYmzqucftmxTOSw5vkNcCWUYo9TPax4T6hKNN6ibF77w16Xzru-jr5jaWbRzwjEjozt2PKCq0UJrRTNwcw8zBtw2UxqT_XnrUWy8uSR9lXWc19LSQ7IFKV3FVEvwXSyBeCSm7Sg1nM1yTYG_QMEXQR--o2LJ-vnmT_0xDHVq9VgoBtLNkw0GBr2LG31GIS21WK_RJ6LqTyK99nhYvNorzWV4bXbLbNWvE1_VRnfwoeUZPpUsdNQ4EVnsxkhfdHwsPZBvGr8pQxe9ktqJ9Mn_eFwNZx4UUesRuA-DrNxapgo5vCiBkjvAXJzERO82bxzDjjuqtXiJRPaoly_nqxwZhBWfYl5aEfZUBUsqmzWy0?></g></svg></div><div class="puml dark" style=""><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" data-diagram-type="CLASS" style="width:1370px;height:691px;background:#1B1B1B;" width="1370px" height="691px" viewBox="0 0 1370 691" zoomAndPan="magnify" preserveAspectRatio="xMidYMid meet" contentStyleType="text/css" class="diagram"><?plantuml 1.2026.9beta4?><defs/><g font-family="sans-serif" lengthAdjust="spacing"><rect x="0" y="0" width="1370" height="691" fill="#1B1B1B" style="stroke:none;"/><g class="cluster" data-qualified-name="Container web .EC2." id="ent0001" data-source-line="5"><path d="M8.5,6 L171.238,6 A3.75,3.75 0 0 1 173.738,8.5 L180.738,28.297 L800.5,28.297 A2.5,2.5 0 0 1 803,30.797 L803,335.22 A2.5,2.5 0 0 1 800.5,337.72 L8.5,337.72 A2.5,2.5 0 0 1 6,335.22 L6,8.5 A2.5,2.5 0 0 1 8.5,6" style="stroke:#FFF;stroke-width:1.5;" fill="none"/><line x1="6" y1="28.297" x2="180.738" y2="28.297" style="stroke:#FFF;stroke-width:1.5;"/><text x="10" y="20.995" fill="#FFF" font-size="14" textLength="161.738" font-weight="700">Container web (EC2)</text></g><g class="cluster" data-qualified-name="Container web .EC2..SearchPage .search" id="ent0005" data-source-line="14"><path d="M32.5,49 L190.638,49 A3.75,3.75 0 0 1 193.138,51.5 L200.138,71.297 L209.5,71.297 A2.5,2.5 0 0 1 212,73.797 L212,170.06 A2.5,2.5 0 0 1 209.5,172.56 L32.5,172.56 A2.5,2.5 0 0 1 30,170.06 L30,51.5 A2.5,2.5 0 0 1 32.5,49" style="stroke:#FFF;stroke-width:1.5;" fill="none"/><line x1="30" y1="71.297" x2="200.138" y2="71.297" style="stroke:#FFF;stroke-width:1.5;"/><text x="34" y="63.995" fill="#FFF" font-size="14" textLength="157.138" font-weight="700">SearchPage (search</text></g><g class="cluster" data-qualified-name="Container db .EC2." id="ent0009" data-source-line="28"><path d="M1026.5,24.56 L1176.831,24.56 A3.75,3.75 0 0 1 1179.331,27.06 L1186.331,46.857 L1352.5,46.857 A2.5,2.5 0 0 1 1355,49.357 L1355,673.68 A2.5,2.5 0 0 1 1352.5,676.18 L1026.5,676.18 A2.5,2.5 0 0 1 1024,673.68 L1024,27.06 A2.5,2.5 0 0 1 1026.5,24.56" style="stroke:#FFF;stroke-width:1.5;" fill="none"/><line x1="1024" y1="46.857" x2="1186.331" y2="46.857" style="stroke:#FFF;stroke-width:1.5;"/><text x="1028" y="39.555" fill="#FFF" font-size="14" textLength="149.331" font-weight="700">Container db (EC2)</text></g><g class="cluster" data-qualified-name="SearchPage .search" id="ent0020" data-source-line="61"><path d="M829.5,61.28 L987.638,61.28 A3.75,3.75 0 0 1 990.138,63.78 L997.138,83.577 L997.5,83.577 A2.5,2.5 0 0 1 1000,86.077 L1000,157.78 A2.5,2.5 0 0 1 997.5,160.28 L829.5,160.28 A2.5,2.5 0 0 1 827,157.78 L827,63.78 A2.5,2.5 0 0 1 829.5,61.28" style="stroke:#FFF;stroke-width:1.5;" fill="none"/><line x1="827" y1="83.577" x2="997.138" y2="83.577" style="stroke:#FFF;stroke-width:1.5;"/><text x="831" y="76.275" fill="#FFF" font-size="14" textLength="157.138" font-weight="700">SearchPage (search</text></g><g class="entity" data-qualified-name="Container web .EC2..PhotoViewSet" id="ent0002" data-source-line="6"><rect x="231.77" y="67.7" width="128.455" height="105.156" fill="#313139" style="stroke:#FFF;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="246.77" cy="87.833" rx="11" ry="11" fill="#2E5233" style="stroke:#E7E7E7;stroke-width:1;"/><path d="M249.739,93.473 Q249.161,93.77 248.52,93.911 Q247.879,94.067 247.176,94.067 Q244.676,94.067 243.348,92.427 Q242.036,90.77 242.036,87.645 Q242.036,84.52 243.348,82.864 Q244.676,81.208 247.176,81.208 Q247.879,81.208 248.52,81.364 Q249.176,81.52 249.739,81.817 L249.739,84.536 Q249.114,83.958 248.52,83.692 Q247.926,83.411 247.301,83.411 Q245.958,83.411 245.27,84.489 Q244.583,85.552 244.583,87.645 Q244.583,89.739 245.27,90.817 Q245.958,91.88 247.301,91.88 Q247.926,91.88 248.52,91.614 Q249.114,91.333 249.739,90.755 L249.739,93.473 Z " fill="#FFF"/><text x="273.068" y="83.839" fill="#000" font-size="12" textLength="71.859" font-style="italic">«boundary»</text><text x="260.77" y="99.664" fill="#FFF" font-size="14" textLength="96.455">PhotoViewSet</text><line x1="232.77" y1="107.966" x2="359.225" y2="107.966" style="stroke:#FFF;stroke-width:0.5;"/><line x1="232.77" y1="115.966" x2="359.225" y2="115.966" style="stroke:#FFF;stroke-width:0.5;"/><text x="237.77" y="132.961" fill="#FFF" font-size="14" textLength="43.217">+list()</text><text x="237.77" y="149.258" fill="#FFF" font-size="14" textLength="67.402">+create()</text><text x="237.77" y="165.554" fill="#FFF" font-size="14" textLength="65.7">+ingest()</text></g><g class="entity" data-qualified-name="Container web .EC2..similarity_search" id="ent0003" data-source-line="11"><rect x="486.36" y="84" width="201.287" height="72.563" fill="#313139" style="stroke:#FFF;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="524.254" cy="104.133" rx="11" ry="11" fill="#2E5233" style="stroke:#E7E7E7;stroke-width:1;"/><path d="M527.223,109.773 Q526.644,110.07 526.004,110.211 Q525.363,110.367 524.66,110.367 Q522.16,110.367 520.832,108.727 Q519.519,107.07 519.519,103.945 Q519.519,100.82 520.832,99.164 Q522.16,97.508 524.66,97.508 Q525.363,97.508 526.004,97.664 Q526.66,97.82 527.223,98.117 L527.223,100.836 Q526.598,100.258 526.004,99.992 Q525.41,99.711 524.785,99.711 Q523.441,99.711 522.754,100.789 Q522.066,101.852 522.066,103.945 Q522.066,106.039 522.754,107.117 Q523.441,108.18 524.785,108.18 Q525.41,108.18 526.004,107.914 Q526.598,107.633 527.223,107.055 L527.223,109.773 Z " fill="#FFF"/><text x="566.618" y="100.139" fill="#000" font-size="12" textLength="71.859" font-style="italic">«boundary»</text><text x="543.341" y="115.964" fill="#FFF" font-size="14" textLength="118.412">similarity_search</text><line x1="487.36" y1="124.266" x2="686.647" y2="124.266" style="stroke:#FFF;stroke-width:0.5;"/><line x1="487.36" y1="132.266" x2="686.647" y2="132.266" style="stroke:#FFF;stroke-width:0.5;"/><text x="492.36" y="149.261" fill="#FFF" font-size="14" textLength="189.287">+post(embedding | image)</text></g><g class="entity" data-qualified-name="Container web .EC2..IngestService" id="ent0006" data-source-line="17"><rect x="22.23" y="249.16" width="187.533" height="72.563" fill="#313139" style="stroke:#E7E7E7;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="64.458" cy="269.293" rx="11" ry="11" fill="#2E5233" style="stroke:#E7E7E7;stroke-width:1;"/><path d="M67.427,274.933 Q66.849,275.23 66.208,275.371 Q65.567,275.527 64.864,275.527 Q62.364,275.527 61.036,273.887 Q59.724,272.23 59.724,269.105 Q59.724,265.98 61.036,264.324 Q62.364,262.668 64.864,262.668 Q65.567,262.668 66.208,262.824 Q66.864,262.98 67.427,263.277 L67.427,265.996 Q66.802,265.418 66.208,265.152 Q65.614,264.871 64.989,264.871 Q63.646,264.871 62.958,265.949 Q62.271,267.012 62.271,269.105 Q62.271,271.199 62.958,272.277 Q63.646,273.34 64.989,273.34 Q65.614,273.34 66.208,273.074 Q66.802,272.793 67.427,272.215 L67.427,274.933 Z " fill="#FFF"/><text x="103.75" y="265.299" fill="#000" font-size="12" textLength="56.543" font-style="italic">«control»</text><text x="84.509" y="281.124" fill="#FFF" font-size="14" textLength="95.026">IngestService</text><line x1="23.23" y1="289.426" x2="208.763" y2="289.426" style="stroke:#E7E7E7;stroke-width:0.5;"/><line x1="23.23" y1="297.426" x2="208.763" y2="297.426" style="stroke:#E7E7E7;stroke-width:0.5;"/><text x="28.23" y="314.421" fill="#FFF" font-size="14" textLength="175.533">+ingest_photo(...): Photo</text></g><g class="entity" data-qualified-name="Container web .EC2..SimilarityService" id="ent0007" data-source-line="20"><rect x="244.31" y="249.16" width="289.389" height="72.563" fill="#313139" style="stroke:#E7E7E7;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="325.788" cy="269.293" rx="11" ry="11" fill="#2E5233" style="stroke:#E7E7E7;stroke-width:1;"/><path d="M328.756,274.933 Q328.178,275.23 327.538,275.371 Q326.897,275.527 326.194,275.527 Q323.694,275.527 322.366,273.887 Q321.053,272.23 321.053,269.105 Q321.053,265.98 322.366,264.324 Q323.694,262.668 326.194,262.668 Q326.897,262.668 327.538,262.824 Q328.194,262.98 328.756,263.277 L328.756,265.996 Q328.131,265.418 327.538,265.152 Q326.944,264.871 326.319,264.871 Q324.975,264.871 324.288,265.949 Q323.6,267.012 323.6,269.105 Q323.6,271.199 324.288,272.277 Q324.975,273.34 326.319,273.34 Q326.944,273.34 327.538,273.074 Q328.131,272.793 328.756,272.215 L328.756,274.933 Z " fill="#FFF"/><text x="376.983" y="265.299" fill="#000" font-size="12" textLength="56.543" font-style="italic">«control»</text><text x="346.288" y="281.124" fill="#FFF" font-size="14" textLength="117.934">SimilarityService</text><line x1="245.31" y1="289.426" x2="532.699" y2="289.426" style="stroke:#E7E7E7;stroke-width:0.5;"/><line x1="245.31" y1="297.426" x2="532.699" y2="297.426" style="stroke:#E7E7E7;stroke-width:0.5;"/><text x="250.31" y="314.421" fill="#FFF" font-size="14" textLength="277.389">+find_similar_photos(vector, threshold)</text></g><g class="entity" data-qualified-name="Container web .EC2..FaceEngine" id="ent0008" data-source-line="23"><rect x="569.18" y="249.16" width="217.646" height="72.563" fill="#313139" style="stroke:#E7E7E7;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="633.291" cy="269.293" rx="11" ry="11" fill="#2E5233" style="stroke:#E7E7E7;stroke-width:1;"/><path d="M636.26,274.933 Q635.681,275.23 635.041,275.371 Q634.4,275.527 633.697,275.527 Q631.197,275.527 629.869,273.887 Q628.556,272.23 628.556,269.105 Q628.556,265.98 629.869,264.324 Q631.197,262.668 633.697,262.668 Q634.4,262.668 635.041,262.824 Q635.697,262.98 636.26,263.277 L636.26,265.996 Q635.635,265.418 635.041,265.152 Q634.447,264.871 633.822,264.871 Q632.478,264.871 631.791,265.949 Q631.103,267.012 631.103,269.105 Q631.103,271.199 631.791,272.277 Q632.478,273.34 633.822,273.34 Q634.447,273.34 635.041,273.074 Q635.635,272.793 636.26,272.215 L636.26,274.933 Z " fill="#FFF"/><text x="665.981" y="265.299" fill="#000" font-size="12" textLength="56.543" font-style="italic">«control»</text><text x="653.791" y="281.124" fill="#FFF" font-size="14" textLength="80.924">FaceEngine</text><line x1="570.18" y1="289.426" x2="785.826" y2="289.426" style="stroke:#E7E7E7;stroke-width:0.5;"/><line x1="570.18" y1="297.426" x2="785.826" y2="297.426" style="stroke:#E7E7E7;stroke-width:0.5;"/><text x="575.18" y="314.421" fill="#FFF" font-size="14" textLength="205.646">+get_query_embedding(img)</text></g><g class="entity" data-qualified-name="Container web .EC2..SearchPage .search.views." id="ent0004" data-source-line="14"><rect x="45.59" y="84" width="150.811" height="72.563" fill="#313139" style="stroke:#FFF;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="83.518" cy="104.133" rx="11" ry="11" fill="#2E5233" style="stroke:#E7E7E7;stroke-width:1;"/><path d="M86.487,109.773 Q85.909,110.07 85.268,110.211 Q84.627,110.367 83.924,110.367 Q81.424,110.367 80.096,108.727 Q78.784,107.07 78.784,103.945 Q78.784,100.82 80.096,99.164 Q81.424,97.508 83.924,97.508 Q84.627,97.508 85.268,97.664 Q85.924,97.82 86.487,98.117 L86.487,100.836 Q85.862,100.258 85.268,99.992 Q84.674,99.711 84.049,99.711 Q82.706,99.711 82.018,100.789 Q81.331,101.852 81.331,103.945 Q81.331,106.039 82.018,107.117 Q82.706,108.18 84.049,108.18 Q84.674,108.18 85.268,107.914 Q85.862,107.633 86.487,107.055 L86.487,109.773 Z " fill="#FFF"/><text x="100.613" y="100.139" fill="#000" font-size="12" textLength="71.859" font-style="italic">«boundary»</text><text x="114.046" y="115.964" fill="#FFF" font-size="14" textLength="44.994">views)</text><line x1="46.59" y1="124.266" x2="195.401" y2="124.266" style="stroke:#FFF;stroke-width:0.5;"/><line x1="46.59" y1="132.266" x2="195.401" y2="132.266" style="stroke:#FFF;stroke-width:0.5;"/><text x="51.59" y="149.261" fill="#FFF" font-size="14" textLength="138.811">+home_view(selfie)</text></g><g class="entity" data-qualified-name="Container db .EC2..Event" id="ent0010" data-source-line="29"><rect x="1083.24" y="59.56" width="77.518" height="121.453" fill="#313139" style="stroke:#E7E7E7;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="1098.24" cy="79.693" rx="11" ry="11" fill="#2E5233" style="stroke:#E7E7E7;stroke-width:1;"/><path d="M1101.209,85.333 Q1100.631,85.63 1099.99,85.771 Q1099.349,85.927 1098.646,85.927 Q1096.146,85.927 1094.818,84.287 Q1093.506,82.63 1093.506,79.505 Q1093.506,76.38 1094.818,74.724 Q1096.146,73.068 1098.646,73.068 Q1099.349,73.068 1099.99,73.224 Q1100.646,73.38 1101.209,73.677 L1101.209,76.396 Q1100.584,75.818 1099.99,75.552 Q1099.396,75.271 1098.771,75.271 Q1097.428,75.271 1096.74,76.349 Q1096.053,77.412 1096.053,79.505 Q1096.053,81.599 1096.74,82.677 Q1097.428,83.74 1098.771,83.74 Q1099.396,83.74 1099.99,83.474 Q1100.584,83.193 1101.209,82.615 L1101.209,85.333 Z " fill="#FFF"/><text x="1110.24" y="75.699" fill="#000" font-size="12" textLength="49.518" font-style="italic">«entity»</text><text x="1114.946" y="91.524" fill="#FFF" font-size="14" textLength="40.106">Event</text><line x1="1084.24" y1="99.826" x2="1159.758" y2="99.826" style="stroke:#E7E7E7;stroke-width:0.5;"/><text x="1089.24" y="116.821" fill="#FFF" font-size="14" textLength="39.703">name</text><text x="1089.24" y="133.118" fill="#FFF" font-size="14" textLength="28.943">slug</text><text x="1089.24" y="149.414" fill="#FFF" font-size="14" textLength="64.34">starts_on</text><text x="1089.24" y="165.711" fill="#FFF" font-size="14" textLength="58.105">ends_on</text><line x1="1084.24" y1="173.013" x2="1159.758" y2="173.013" style="stroke:#E7E7E7;stroke-width:0.5;"/></g><g class="entity" data-qualified-name="Container db .EC2..Session" id="ent0011" data-source-line="35"><rect x="1040.29" y="241.01" width="85.416" height="88.859" fill="#313139" style="stroke:#E7E7E7;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="1055.29" cy="261.143" rx="11" ry="11" fill="#2E5233" style="stroke:#E7E7E7;stroke-width:1;"/><path d="M1058.259,266.783 Q1057.681,267.08 1057.04,267.221 Q1056.399,267.377 1055.696,267.377 Q1053.196,267.377 1051.868,265.737 Q1050.556,264.08 1050.556,260.955 Q1050.556,257.83 1051.868,256.174 Q1053.196,254.518 1055.696,254.518 Q1056.399,254.518 1057.04,254.674 Q1057.696,254.83 1058.259,255.127 L1058.259,257.846 Q1057.634,257.268 1057.04,257.002 Q1056.446,256.721 1055.821,256.721 Q1054.478,256.721 1053.79,257.799 Q1053.103,258.862 1053.103,260.955 Q1053.103,263.049 1053.79,264.127 Q1054.478,265.19 1055.821,265.19 Q1056.446,265.19 1057.04,264.924 Q1057.634,264.643 1058.259,264.065 L1058.259,266.783 Z " fill="#FFF"/><text x="1071.239" y="257.149" fill="#000" font-size="12" textLength="49.518" font-style="italic">«entity»</text><text x="1069.29" y="272.974" fill="#FFF" font-size="14" textLength="53.416">Session</text><line x1="1041.29" y1="281.276" x2="1124.706" y2="281.276" style="stroke:#E7E7E7;stroke-width:0.5;"/><text x="1046.29" y="298.271" fill="#FFF" font-size="14" textLength="27.371">title</text><text x="1046.29" y="314.568" fill="#FFF" font-size="14" textLength="25.751">day</text><line x1="1041.29" y1="321.869" x2="1124.706" y2="321.869" style="stroke:#E7E7E7;stroke-width:0.5;"/></g><g class="entity" data-qualified-name="Container db .EC2..Photographer" id="ent0012" data-source-line="39"><rect x="1198.36" y="241.01" width="127.286" height="88.859" fill="#313139" style="stroke:#E7E7E7;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="1213.36" cy="261.143" rx="11" ry="11" fill="#2E5233" style="stroke:#E7E7E7;stroke-width:1;"/><path d="M1216.329,266.783 Q1215.751,267.08 1215.11,267.221 Q1214.469,267.377 1213.766,267.377 Q1211.266,267.377 1209.938,265.737 Q1208.626,264.08 1208.626,260.955 Q1208.626,257.83 1209.938,256.174 Q1211.266,254.518 1213.766,254.518 Q1214.469,254.518 1215.11,254.674 Q1215.766,254.83 1216.329,255.127 L1216.329,257.846 Q1215.704,257.268 1215.11,257.002 Q1214.516,256.721 1213.891,256.721 Q1212.548,256.721 1211.86,257.799 Q1211.173,258.862 1211.173,260.955 Q1211.173,263.049 1211.86,264.127 Q1212.548,265.19 1213.891,265.19 Q1214.516,265.19 1215.11,264.924 Q1215.704,264.643 1216.329,264.065 L1216.329,266.783 Z " fill="#FFF"/><text x="1250.244" y="257.149" fill="#000" font-size="12" textLength="49.518" font-style="italic">«entity»</text><text x="1227.36" y="272.974" fill="#FFF" font-size="14" textLength="95.286">Photographer</text><line x1="1199.36" y1="281.276" x2="1324.646" y2="281.276" style="stroke:#E7E7E7;stroke-width:0.5;"/><text x="1204.36" y="298.271" fill="#FFF" font-size="14" textLength="39.703">name</text><text x="1204.36" y="314.568" fill="#FFF" font-size="14" textLength="38.609">email</text><line x1="1199.36" y1="321.869" x2="1324.646" y2="321.869" style="stroke:#E7E7E7;stroke-width:0.5;"/></g><g class="entity" data-qualified-name="Container db .EC2..Tag" id="ent0013" data-source-line="43"><rect x="1040.24" y="571.32" width="77.518" height="72.563" fill="#313139" style="stroke:#E7E7E7;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="1055.24" cy="591.453" rx="11" ry="11" fill="#2E5233" style="stroke:#E7E7E7;stroke-width:1;"/><path d="M1058.209,597.093 Q1057.631,597.39 1056.99,597.531 Q1056.349,597.687 1055.646,597.687 Q1053.146,597.687 1051.818,596.047 Q1050.506,594.39 1050.506,591.265 Q1050.506,588.14 1051.818,586.484 Q1053.146,584.828 1055.646,584.828 Q1056.349,584.828 1056.99,584.984 Q1057.646,585.14 1058.209,585.437 L1058.209,588.156 Q1057.584,587.578 1056.99,587.312 Q1056.396,587.031 1055.771,587.031 Q1054.428,587.031 1053.74,588.109 Q1053.053,589.172 1053.053,591.265 Q1053.053,593.359 1053.74,594.437 Q1054.428,595.5 1055.771,595.5 Q1056.396,595.5 1056.99,595.234 Q1057.584,594.953 1058.209,594.375 L1058.209,597.093 Z " fill="#FFF"/><text x="1067.24" y="587.459" fill="#000" font-size="12" textLength="49.518" font-style="italic">«entity»</text><text x="1078.99" y="603.284" fill="#FFF" font-size="14" textLength="26.018">Tag</text><line x1="1041.24" y1="611.586" x2="1116.758" y2="611.586" style="stroke:#E7E7E7;stroke-width:0.5;"/><text x="1046.24" y="628.581" fill="#FFF" font-size="14" textLength="39.703">name</text><line x1="1041.24" y1="635.882" x2="1116.758" y2="635.882" style="stroke:#E7E7E7;stroke-width:0.5;"/></g><g class="entity" data-qualified-name="Container db .EC2..Photo" id="ent0014" data-source-line="46"><rect x="1067.51" y="389.87" width="130.979" height="105.156" fill="#313139" style="stroke:#E7E7E7;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="1106.568" cy="410.003" rx="11" ry="11" fill="#2E5233" style="stroke:#E7E7E7;stroke-width:1;"/><path d="M1109.537,415.643 Q1108.958,415.94 1108.318,416.081 Q1107.677,416.237 1106.974,416.237 Q1104.474,416.237 1103.146,414.597 Q1101.833,412.94 1101.833,409.815 Q1101.833,406.69 1103.146,405.034 Q1104.474,403.378 1106.974,403.378 Q1107.677,403.378 1108.318,403.534 Q1108.974,403.69 1109.537,403.987 L1109.537,406.706 Q1108.912,406.128 1108.318,405.862 Q1107.724,405.581 1107.099,405.581 Q1105.755,405.581 1105.068,406.659 Q1104.38,407.722 1104.38,409.815 Q1104.38,411.909 1105.068,412.987 Q1105.755,414.05 1107.099,414.05 Q1107.724,414.05 1108.318,413.784 Q1108.912,413.503 1109.537,412.925 L1109.537,415.643 Z " fill="#FFF"/><text x="1123.914" y="406.009" fill="#000" font-size="12" textLength="49.518" font-style="italic">«entity»</text><text x="1128.705" y="421.834" fill="#FFF" font-size="14" textLength="39.936">Photo</text><line x1="1068.51" y1="430.136" x2="1197.489" y2="430.136" style="stroke:#E7E7E7;stroke-width:0.5;"/><text x="1073.51" y="447.131" fill="#FFF" font-size="14" textLength="90.31">image_name</text><text x="1073.51" y="463.428" fill="#FFF" font-size="14" textLength="60.73">taken_at</text><text x="1073.51" y="479.724" fill="#FFF" font-size="14" textLength="118.979">metadata : jsonb</text><line x1="1068.51" y1="487.026" x2="1197.489" y2="487.026" style="stroke:#E7E7E7;stroke-width:0.5;"/></g><g class="entity" data-qualified-name="Container db .EC2..Face" id="ent0015" data-source-line="51"><rect x="1152.58" y="555.02" width="186.843" height="105.156" fill="#313139" style="stroke:#E7E7E7;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="1218.993" cy="575.153" rx="11" ry="11" fill="#2E5233" style="stroke:#E7E7E7;stroke-width:1;"/><path d="M1221.961,580.793 Q1221.383,581.09 1220.743,581.231 Q1220.102,581.387 1219.399,581.387 Q1216.899,581.387 1215.571,579.747 Q1214.258,578.09 1214.258,574.965 Q1214.258,571.84 1215.571,570.184 Q1216.899,568.528 1219.399,568.528 Q1220.102,568.528 1220.743,568.684 Q1221.399,568.84 1221.961,569.137 L1221.961,571.856 Q1221.336,571.278 1220.743,571.012 Q1220.149,570.731 1219.524,570.731 Q1218.18,570.731 1217.493,571.809 Q1216.805,572.872 1216.805,574.965 Q1216.805,577.059 1217.493,578.137 Q1218.18,579.2 1219.524,579.2 Q1220.149,579.2 1220.743,578.934 Q1221.336,578.653 1221.961,578.075 L1221.961,580.793 Z " fill="#FFF"/><text x="1237.493" y="571.159" fill="#000" font-size="12" textLength="49.518" font-style="italic">«entity»</text><text x="1245.78" y="586.984" fill="#FFF" font-size="14" textLength="32.942">Face</text><line x1="1153.58" y1="595.286" x2="1338.423" y2="595.286" style="stroke:#E7E7E7;stroke-width:0.5;"/><text x="1158.58" y="612.281" fill="#FFF" font-size="14" textLength="75.366">face_index</text><text x="1158.58" y="628.578" fill="#FFF" font-size="14" textLength="85.75">bbox : jsonb</text><line x1="1153.58" y1="635.879" x2="1338.423" y2="635.879" style="stroke:#E7E7E7;stroke-width:0.5;"/><text x="1158.58" y="652.874" fill="#FFF" font-size="14" textLength="174.843">embedding : vector(128)</text></g><g class="entity" data-qualified-name="SearchPage .search.views." id="ent0019" data-source-line="61"><rect x="842.5" y="96.28" width="76.994" height="48" fill="#313139" style="stroke:#E7E7E7;stroke-width:0.5;" rx="2.5" ry="2.5"/><ellipse cx="857.5" cy="112.28" rx="11" ry="11" fill="#2E5233" style="stroke:#E7E7E7;stroke-width:1;"/><path d="M860.469,117.921 Q859.891,118.217 859.25,118.358 Q858.609,118.514 857.906,118.514 Q855.406,118.514 854.078,116.874 Q852.766,115.217 852.766,112.092 Q852.766,108.967 854.078,107.311 Q855.406,105.655 857.906,105.655 Q858.609,105.655 859.25,105.811 Q859.906,105.967 860.469,106.264 L860.469,108.983 Q859.844,108.405 859.25,108.139 Q858.656,107.858 858.031,107.858 Q856.688,107.858 856,108.936 Q855.313,109.999 855.313,112.092 Q855.313,114.186 856,115.264 Q856.688,116.327 858.031,116.327 Q858.656,116.327 859.25,116.061 Q859.844,115.78 860.469,115.202 L860.469,117.921 Z " fill="#FFF"/><text x="871.5" y="117.127" fill="#FFF" font-size="14" textLength="44.994">views)</text><line x1="843.5" y1="128.28" x2="918.494" y2="128.28" style="stroke:#E7E7E7;stroke-width:0.5;"/><line x1="843.5" y1="136.28" x2="918.494" y2="136.28" style="stroke:#E7E7E7;stroke-width:0.5;"/></g><g class="link" data-entity-1="ent0002" data-entity-2="ent0006" id="lnk16" data-source-line="58" data-link-type="dependency"><path d="M238.55,173.35 C211.39,197.97 183.365,223.382 158.995,245.472" style="stroke:#E7E7E7;stroke-width:1;" fill="none" id="PhotoViewSet-to-IngestService" codeLine="58"/><polygon points="155.29,248.83,164.645,245.749,158.995,245.472,159.272,239.822,155.29,248.83" fill="#E7E7E7" style="stroke:#E7E7E7;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"/></g><g class="link" data-entity-1="ent0003" data-entity-2="ent0007" id="lnk17" data-source-line="59" data-link-type="dependency"><path d="M544.04,156.68 C510.94,183.96 469.239,218.321 436.079,245.641" style="stroke:#E7E7E7;stroke-width:1;" fill="none" id="similarity_search-to-SimilarityService" codeLine="59"/><polygon points="432.22,248.82,441.71,246.184,436.079,245.641,436.623,240.01,432.22,248.82" fill="#E7E7E7" style="stroke:#E7E7E7;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"/></g><g class="link" data-entity-1="ent0003" data-entity-2="ent0008" id="lnk18" data-source-line="60" data-link-type="dependency"><path d="M606.75,156.68 C621.96,183.96 640.453,217.134 655.703,244.454" style="stroke:#E7E7E7;stroke-width:1;" fill="none" id="similarity_search-to-FaceEngine" codeLine="60"/><polygon points="658.14,248.82,657.246,239.012,655.703,244.454,650.261,242.911,658.14,248.82" fill="#E7E7E7" style="stroke:#E7E7E7;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"/></g><g class="link" data-entity-1="ent0019" data-entity-2="ent0008" id="lnk21" data-source-line="61" data-link-type="dependency"><path d="M851.92,144.66 C818.04,171.89 765.608,214.028 726.258,245.648" style="stroke:#E7E7E7;stroke-width:1;" fill="none" id="views)-to-FaceEngine" codeLine="61"/><polygon points="722.36,248.78,731.881,246.261,726.258,245.648,726.87,240.024,722.36,248.78" fill="#E7E7E7" style="stroke:#E7E7E7;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"/></g><g class="link" data-entity-1="ent0019" data-entity-2="ent0007" id="lnk22" data-source-line="62" data-link-type="dependency"><path d="M856.1,144.7 C841.6,157.16 822.41,171.78 803,181.01 C699.43,230.28 663.2,212.91 552,241.01 C542.2,243.48 536.93,244.824 526.76,247.464" style="stroke:#E7E7E7;stroke-width:1;" fill="none" id="views)-to-SimilarityService" codeLine="62"/><polygon points="521.92,248.72,531.636,250.33,526.76,247.464,529.626,242.587,521.92,248.72" fill="#E7E7E7" style="stroke:#E7E7E7;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"/></g><g class="link" data-entity-1="ent0006" data-entity-2="ent0014" id="lnk23" data-source-line="63" data-link-type="dependency"><path d="M172.64,322.08 C189.55,331.21 208.52,340.04 227,345.72 C247.15,351.91 857.435,413.709 1062.355,434.349" style="stroke:#E7E7E7;stroke-width:1;" fill="none" id="IngestService-to-Photo" codeLine="63"/><polygon points="1067.33,434.85,1058.776,429.968,1062.355,434.349,1057.974,437.928,1067.33,434.85" fill="#E7E7E7" style="stroke:#E7E7E7;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"/></g><g class="link" data-entity-1="ent0006" data-entity-2="ent0013" id="lnk24" data-source-line="64" data-link-type="dependency"><path d="M180.69,322.14 C195.77,330.13 211.85,338.41 227,345.72 C377.48,418.31 413.02,443.65 572,495.02 C742.45,550.1 948.892,586.123 1034.912,599.833" style="stroke:#E7E7E7;stroke-width:1;" fill="none" id="IngestService-to-Tag" codeLine="64"/><polygon points="1039.85,600.62,1031.592,595.253,1034.912,599.833,1030.333,603.154,1039.85,600.62" fill="#E7E7E7" style="stroke:#E7E7E7;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"/></g><g class="link" data-entity-1="ent0006" data-entity-2="ent0015" id="lnk25" data-source-line="65" data-link-type="dependency"><path d="M174.65,322.13 C191.12,330.93 209.36,339.58 227,345.72 C331.09,381.93 366.51,354.83 471,389.87 C569.21,422.8 580.02,464.47 679,495.02 C874.32,555.33 938.71,497.96 1135,555.02 C1140.71,556.68 1141.797,556.902 1147.587,558.992" style="stroke:#E7E7E7;stroke-width:1;" fill="none" id="IngestService-to-Face" codeLine="65"/><polygon points="1152.29,560.69,1145.183,553.872,1147.587,558.992,1142.467,561.397,1152.29,560.69" fill="#E7E7E7" style="stroke:#E7E7E7;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"/></g><g class="link" data-entity-1="ent0007" data-entity-2="ent0015" id="lnk26" data-source-line="66" data-link-type="dependency"><path d="M486.81,322.08 C508.28,329.89 530.9,338.1 552,345.72 C810.92,439.28 880.35,450.4 1135,555.02 C1140.6,557.33 1141.743,557.759 1147.503,560.259" style="stroke:#E7E7E7;stroke-width:1;" fill="none" id="SimilarityService-to-Face" codeLine="66"/><polygon points="1152.09,562.25,1145.427,554.997,1147.503,560.259,1142.242,562.336,1152.09,562.25" fill="#E7E7E7" style="stroke:#E7E7E7;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:10;"/></g><g class="link" data-entity-1="ent0010" data-entity-2="ent0011" id="lnk27" data-source-line="68" data-link-type="association"><path d="M1107.7,181.11 C1102.98,200.84 1097.83,222.41 1093.45,240.71" style="stroke:#E7E7E7;stroke-width:1;" fill="none" id="Event-Session" codeLine="68"/><text x="1097.6" y="201.084" fill="#FFF" font-size="13">1</text><text x="1088.629" y="229.789" fill="#FFF" font-size="13">*</text></g><g class="link" data-entity-1="ent0010" data-entity-2="ent0014" id="lnk28" data-source-line="69" data-link-type="association"><path d="M1134.63,181.31 C1138.06,200.31 1141.3,221.46 1143,241.01 C1147.04,287.37 1145.42,299.24 1143,345.72 C1142.25,360.07 1140.88,375.58 1139.38,389.86" style="stroke:#E7E7E7;stroke-width:1;" fill="none" id="Event-Photo" codeLine="69"/><text x="1127.589" y="200.879" fill="#FFF" font-size="13">1</text><text x="1133.868" y="378.861" fill="#FFF" font-size="13">*</text></g><g class="link" data-entity-1="ent0011" data-entity-2="ent0014" id="lnk29" data-source-line="70" data-link-type="association"><path d="M1097.06,330.03 C1103.01,348.48 1109.99,370.11 1116.21,389.39" style="stroke:#E7E7E7;stroke-width:1;" fill="none" id="Session-Photo" codeLine="70"/><text x="1073.438" y="350.083" fill="#FFF" font-size="13" textLength="24.807">0..1</text><text x="1107.706" y="378.706" fill="#FFF" font-size="13">*</text></g><g class="link" data-entity-1="ent0012" data-entity-2="ent0014" id="lnk30" data-source-line="71" data-link-type="association"><path d="M1225.72,330.03 C1210.37,348.48 1192.36,370.11 1176.32,389.39" style="stroke:#E7E7E7;stroke-width:1;" fill="none" id="Photographer-Photo" codeLine="71"/><text x="1194.388" y="350.083" fill="#FFF" font-size="13" textLength="24.807">0..1</text><text x="1175.518" y="378.706" fill="#FFF" font-size="13">*</text></g><g class="link" data-entity-1="ent0014" data-entity-2="ent0013" id="lnk31" data-source-line="72" data-link-type="association"><path d="M1115.77,495.52 C1107.62,520.14 1098.1,548.9 1090.79,570.99" style="stroke:#E7E7E7;stroke-width:1;" fill="none" id="Photo-Tag" codeLine="72"/><text x="1107.335" y="514.977" fill="#FFF" font-size="13">*</text><text x="1086.4" y="560.211" fill="#FFF" font-size="13">*</text></g><g class="link" data-entity-1="ent0014" data-entity-2="ent0015" id="lnk32" data-source-line="73" data-link-type="association"><path d="M1169.06,495.52 C1182.18,514.45 1196.99,535.83 1210.08,554.74" style="stroke:#E7E7E7;stroke-width:1;" fill="none" id="Photo-Face" codeLine="73"/><text x="1164.984" y="514.977" fill="#FFF" font-size="13">1</text><text x="1199.125" y="544.082" fill="#FFF" font-size="13">*</text></g><?plantuml-src bPDDQzmm48Rl_XMgJzwsiPESoX829QGGIY6mfLSpjcPjTVNXIkFTRDlyzqhoVditq8lGZ5uzUgKPlHEwbZr7rX9rRbeK5bPv8wZjgzwXhOqcr9JNHXNVnA858RzQM2AvGYsugLtPzKeM2XoXBQX5XQxWE8TUKi71BlAmdhY5q1rOKAoMuDnd8Ykgdl39ysVYDxBh0ubhWPkLq0sRWtIO91tK2sYGfG_U3GYDbgsmOjdZm-qaPNyIDb1P-jmQCZy4hcP8ARkxgqollOdr_NrKCVP12aVPP9ZN5e5m6_dpSBFskYSweOG4AsXTEWHRj-UndV5RKLN8UV3zbmdb3P-mPX7m76wI3R1ywRswoNbcQnIMGU35SYvEQK_HxmpjKjGO2A5KriWzOBXHsOL7oV8ydqnPVA0JLxiRliMQ2ytBpMCCH9SjiIPZFp9gBRhMI7xYy0lK-AWRNw-po0Qf_DMZNPUxXyk4QWR8wzcgypD5Vrpw_lHyF_exxF0Q5CQ9atqpJ0WikTBe6A7cc_dUyGoT4qQFOJwG0ut3-cXBVD36GjTwUvTDeF8VvsZZTsWkwa_mOrtihd979rYWBe5Ye9200m6Rif_EwEg85qeonirzjlG5nfSOLfLvETWTt6yRUyg6ecStjvzsXJhyTUpgwfuTjMOo-a9HCsgx2xfz4oLlVQ3_b8vFF_8SDSDV6UTzvSvam-792BjVIeO-JM-20PQ-JxVTDbuO3jusOtgTvwThHrrtKH3ZJJgOtYJtsc3i7m00?></g></svg></div></div>
+
+<h2 id="7-ajustes-de-capacidade">7. Ajustes de capacidade<a class="headerlink" href="#7-ajustes-de-capacidade" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Situação</th>
+<th>Ação</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CPU acima de 70% por muito tempo (créditos esgotando)</td>
+<td>Ativar modo <code>unlimited</code> da t3 ou subir para t3.large</td>
+</tr>
+<tr>
+<td>Buscas por selfie enfileirando</td>
+<td>Aumentar workers do Gunicorn (<code>--workers</code>), limitado pela RAM: cada worker com dlib usa ≈ 190 MB</td>
+</tr>
+<tr>
+<td>Muitos eventos no mesmo banco</td>
+<td>Ver <code>dimrbd.md</code> (índice HNSW, disco)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="8-historico-de-versoes">8. Histórico de versões<a class="headerlink" href="#8-historico-de-versoes" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Versão</th>
+<th>Data</th>
+<th>Descrição</th>
+<th>Autor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0</td>
+<td>11/11/2026</td>
+<td>Dimensionamento com medições do ambiente Docker</td>
+<td>Nicholas Borges de Vasconcelos</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright ©️ 2026, PhotoMatch - Projeto de Cloud (PC_CDIA_26.2_8001)
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "navigation.indexes", "navigation.instant", "navigation.instant.progress", "navigation.path", "navigation.tabs", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow", "toc.integrate"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+        <script src="../../assets/mkdocs_puml/puml.js"></script>
+      
+        <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
+      
+        <script src="../../assets/mkdocs_puml/interaction.js"></script>
+      
+    
+  </body>
+</html>
