@@ -8,9 +8,11 @@ PhotoMatch encontra as fotos de um evento em que uma pessoa aparece a partir de 
 
 | Item | Endereço |
 |---|---|
-| API publicada | `http://<IP-PUBLICO-EC2>:8000/api/` (preencher após o deploy) |
-| Django Admin | `http://<IP-PUBLICO-EC2>:8000/admin/` |
-| Documentação (MkDocs) | `https://projetos-de-extensao.github.io/PC_CDIA_26.2_8001_II/` (preencher após o `mkdocs gh-deploy`) |
+| Busca por selfie | [http://184.194.134.225:8000/](http://184.194.134.225:8000/) |
+| API publicada | [http://184.194.134.225:8000/api/](http://184.194.134.225:8000/api/) |
+| Django Admin | [http://184.194.134.225:8000/admin/](http://184.194.134.225:8000/admin/) |
+| Documentação (MkDocs, GitHub Pages) | [https://projetos-de-extensao.github.io/PC_CDIA_26.2_8001_II/](https://projetos-de-extensao.github.io/PC_CDIA_26.2_8001_II/) |
+| Validação do deploy | [https://projetos-de-extensao.github.io/PC_CDIA_26.2_8001_II/Transicao/validacao/](https://projetos-de-extensao.github.io/PC_CDIA_26.2_8001_II/Transicao/validacao/) |
 
 ## Arquitetura
 
@@ -222,15 +224,19 @@ Com `BACKUP_S3_URI=s3://<bucket>/backups/` o script também copia o arquivo para
 
 ## Evidências do deploy
 
-Salve as capturas em `docs/assets/evidencias/` e referencie-as aqui:
+Capturas feitas na instância EC2 em 13/11/2026. Os trechos com senha e com o IP do operador foram cobertos.
 
-- [ ] `docker ps` na EC2
-- [ ] `docker compose logs web` (migrações e Gunicorn)
-- [ ] `/api/` acessada pelo IP público
-- [ ] Django Admin logado
-- [ ] `psql` listando `gallery_photo` e `gallery_face`
-- [ ] contagem igual antes e depois de `down`/`up`
-- [ ] Security Group com 22 e 8000
+| # | Requisito | Evidência |
+|---|---|---|
+| 1 | B1: Security Group só com SSH (22, IP do operador) e API (8000); sem 5432 | ![Security Group](docs/assets/evidencias/01-security-group.png) |
+| 2 | B1: Docker, Docker Compose e Git instalados na EC2 | ![Versões](docs/assets/evidencias/02-ec2-docker-compose-git.png) |
+| 3 | A7/B4: `.env` criado só na EC2, com segredos gerados e o IP público | ![.env](docs/assets/evidencias/03-env-configurado.png) |
+| 4 | B2: build da imagem `web` (compilação do dlib) | ![Build](docs/assets/evidencias/04-docker-build-dlib.png) |
+| 5 | B2/B5: `web` e `db` saudáveis; migrações, `collectstatic`, superusuário, seed e Gunicorn | ![Deploy](docs/assets/evidencias/05-deploy-healthy-logs.png) |
+| 6 | B6: API acessada pelo IP público | ![API](docs/assets/evidencias/06-api-ip-publico.png) |
+| 7 | B6: porta 8000 acessível de fora | ![Porta 8000](docs/assets/evidencias/07-porta-8000-aberta.png) |
+| 8 | B8: migrações aplicadas e tabelas no PostgreSQL (`psql \dt`) | ![Tabelas](docs/assets/evidencias/08-migracoes-e-tabelas.png) |
+| 9 | B7: dados mantidos após `docker compose down` / `up` (24 fotos antes e depois) | ![Persistência](docs/assets/evidencias/09-persistencia-down-up.png) |
 
 ## Segurança
 
