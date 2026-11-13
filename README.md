@@ -1,295 +1,244 @@
-# PhotoMatch
+# PhotoMatch: API de busca facial para eventos
 
-PhotoMatch is a Django face-search demo for SBrT 2026. It was delivered for
-the AP1 project, deployed for the event, and used during SBrT 2026.
+PhotoMatch encontra as fotos de um evento em que uma pessoa aparece a partir de uma selfie. Na AP1 o sistema rodou no Elastic Beanstalk com RDS e foi usado no SBrT 2026. Na AP2 ele passa a rodar em **uma instância EC2 com Docker Compose** (`web` + `db`), com **PostgreSQL multimodelo** em container: dados relacionais, documentos JSONB e vetores (pgvector).
 
-Live site: [https://d24arz92xas8lx.cloudfront.net/](https://d24arz92xas8lx.cloudfront.net/)
+![PhotoMatch em uso no SBrT 2026](./Screenshot%202026-10-02%20at%2011-00-50%20PhotoMatch%20SBrT%202026.png)
 
-![PhotoMatch running during SBrT 2026](./Screenshot%202026-10-02%20at%2011-00-50%20PhotoMatch%20SBrT%202026.png)
+## Links da entrega
 
-## Delivery requirements completed
+| Item | Endereço |
+|---|---|
+| API publicada | `http://<IP-PUBLICO-EC2>:8000/api/` (preencher após o deploy) |
+| Django Admin | `http://<IP-PUBLICO-EC2>:8000/admin/` |
+| Documentação (MkDocs) | `https://projetos-de-extensao.github.io/PC_CDIA_26.2_8001_II/` (preencher após o `mkdocs gh-deploy`) |
 
-- Documento de Visão
-- Requisitos Suplementares
-- Files needed to deploy on Elastic Beanstalk
+## Arquitetura
 
-## Delivery summary
-
-The application runs as one Docker container on AWS Elastic Beanstalk, stores
-face embeddings in RDS PostgreSQL with pgvector, serves event photos from S3
-using short-lived presigned URLs, and is exposed publicly through CloudFront
-over HTTPS.
-
-For the complete AWS Management Console deployment walkthrough, see
-[AWS_DEPLOYMENT.md](./AWS_DEPLOYMENT.md).
-
-## Deployment architecture
-
-- **Elastic Beanstalk:** Django and Gunicorn in one Docker container.
-- **RDS PostgreSQL:** source of truth for 128-dimensional face embeddings.
-- **S3:** event photos only; the application role is read-only (`s3:GetObject`
-  and `s3:ListBucket`).
-- **CloudFront:** HTTPS entry point in front of the deployed application.
-- **Selfies:** processed in memory for one request and never persisted.
-
-The local `THF_face_database.pkl`, `db.sqlite3`, dataset images, virtualenv,
-and model artifacts are intentionally excluded from Git and Docker images.
-
-## Environment variables
-
-Set these in Elastic Beanstalk **Configuration > Updates, monitoring, and
-logging > Environment properties** (or with `eb setenv`). Never commit them.
-
-Required:
-
-- `DJANGO_SECRET_KEY`: long random production secret.
-- `DJANGO_ALLOWED_HOSTS`: comma-separated hostnames, for example
-  `your-env.elasticbeanstalk.com,www.example.com`.
-- `DJANGO_CSRF_TRUSTED_ORIGINS`: comma-separated full origins including the
-  scheme, for example `https://your-env.elasticbeanstalk.com`.
-- `DATABASE_URL`: PostgreSQL URL, for example
-  `postgresql://photomatch:password@rds-endpoint:5432/photomatch`.
-- `S3_BUCKET`: bucket containing event photos.
-
-Optional:
-
-- `S3_IMAGE_PREFIX`: object prefix, default `dataset/`.
-- `MATCH_THRESHOLD`: distance threshold, default `0.60`.
-- `DJANGO_DEBUG`: keep `false` in AWS.
-- `DJANGO_SECURE_SSL_REDIRECT`: set `true` after HTTPS and the HTTP
-  redirect are configured.
-- `DJANGO_HSTS_SECONDS`: set to `31536000` only after HTTPS is confirmed.
-- `LOCAL_PHOTO_DB_ENABLED`: local PKL fallback, default `true` outside AWS;
-  set `false` in AWS.
-
-Use an AWS Secrets Manager or Systems Manager-backed deployment workflow for
-database credentials where available. Do not put passwords in source control,
-`.ebextensions`, `Dockerrun.aws.json`, or shell history.
-
-## Local development
-
-1. Install dependencies:
-   - `pip install -r requirements.txt`
-   - If you previously installed dependencies before this update, run the command again so `setuptools` is present (required by `face_recognition_models`).
-2. Export environment variables listed above.
-3. Run migrations:
-   - `python manage.py migrate`
-4. (One-time) import PKL shards into Postgres:
-   - `python manage.py import_pkl_to_rds --glob "/path/to/shards/*.pkl"`
-5. Start the app:
-   - `python manage.py runserver 0.0.0.0:8080`
-
-When running outside AWS, the app can use a local photo database automatically if present:
-- `LOCAL_PHOTO_DB_ENABLED` (optional, default `true`)
-- `LOCAL_PHOTO_DB_PATH` (optional, default `./THF_face_database.pkl`)
-- `LOCAL_PHOTO_IMAGES_DIR` (optional, defaults to `DATASET_IMAGES_DIR` or `./dataset_images`)
-
-If S3 is not configured and local mode is active, result previews are served from `/photos/<image_name>`.
-
-## Health check
-
-- `GET /health` returns HTTP 200 JSON for ALB/EB health checks.
-
-## AWS deployment: step by step
-
-The commands below use the AWS CLI, Docker, and the Elastic Beanstalk CLI.
-Install and configure them with an IAM deployment identity before starting:
-
-```powershell
-aws configure
-pip install awsebcli --upgrade --user
+```mermaid
+flowchart LR
+    dev[Notebook Windows] -- git push --> gh[(GitHub)]
+    gh -- git pull --> ec2
+    user[Participante / navegador] -- HTTP :8000 --> web
+    subgraph ec2[EC2 Ubuntu - Security Group: 22 e 8000]
+        subgraph compose[Docker Compose]
+            web[web<br/>Django + DRF + Gunicorn]
+            db[(db<br/>PostgreSQL 17 + pgvector)]
+            web -- rede interna :5432 --> db
+            db --- vol[[volume pgdata]]
+        end
+    end
+    web -. URLs pré-assinadas .-> s3[(S3: fotos do evento)]
 ```
 
-### 1. Create the S3 bucket and upload photos
+O Postgres não publica porta no host: só o container `web` o alcança pela rede do Compose.
 
-Choose a globally unique bucket name in the same AWS Region as Elastic
-Beanstalk and RDS. Keep the bucket private; the application generates
-presigned GET URLs.
+### Modelo de dados (multimodelo)
 
-```powershell
-aws s3 mb s3://YOUR_PHOTO_BUCKET --region YOUR_REGION
-aws s3 sync .\dataset s3://YOUR_PHOTO_BUCKET/dataset/ --only-show-errors
-```
-
-Do not enable public access for this bucket. Do not give the application
-`PutObject` or `DeleteObject` permissions.
-
-### 2. Create RDS PostgreSQL
-
-In the RDS console:
-
-1. Create a PostgreSQL DB instance in `YOUR_REGION`.
-2. Put it in the same VPC as the Elastic Beanstalk environment.
-3. Use private subnets where possible and disable public access unless a
-   controlled migration path requires it.
-4. Create a database named `photomatch` and a dedicated application user.
-5. Attach an RDS security group that allows TCP `5432` **only from the
-   Elastic Beanstalk instance security group**.
-6. Enable encryption at rest, automated backups, and deletion protection for
-   a production event.
-
-After the instance is available, connect through an approved network path
-(for example a bastion, VPN, or AWS CloudShell where the VPC permits access)
-and enable pgvector:
-
-```sql
-CREATE EXTENSION IF NOT EXISTS vector;
-```
-
-The extension is named `vector` in PostgreSQL. Confirm that the selected RDS
-PostgreSQL engine version supports it before creating the database.
-
-### 3. Create the Elastic Beanstalk application
-
-From the repository root:
-
-```powershell
-eb init photomatch --platform docker --region YOUR_REGION
-```
-
-When prompted, choose the existing AWS key pair only if you need SSH
-troubleshooting access. Otherwise, use the least-privileged setup available.
-
-Create the environment:
-
-```powershell
-eb create photomatch-prod --instance_type t3.small
-```
-
-This repository contains a `Dockerfile`; Elastic Beanstalk builds and runs
-that single container and exposes port `8080`. The
-`.ebextensions/01-environment.config` file configures a load-balanced
-environment and the health path as `/health`. This is a single-container
-deployment, not a single-instance deployment.
-
-For a temporary demo you may choose a single-instance environment in the
-console, but it has less availability and should not be used for a busy event.
-
-### 4. Configure the S3 instance-role permissions
-
-Attach a least-privilege inline policy to the Elastic Beanstalk EC2 instance
-profile role. Replace the bucket and prefix:
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": ["s3:ListBucket"],
-      "Resource": "arn:aws:s3:::YOUR_PHOTO_BUCKET",
-      "Condition": {
-        "StringLike": {"s3:prefix": ["dataset", "dataset/*"]}
-      }
-    },
-    {
-      "Effect": "Allow",
-      "Action": ["s3:GetObject"],
-      "Resource": "arn:aws:s3:::YOUR_PHOTO_BUCKET/dataset/*"
+```mermaid
+erDiagram
+    EVENT ||--o{ SESSION : tem
+    EVENT ||--o{ PHOTO : contem
+    SESSION |o--o{ PHOTO : agrupa
+    PHOTOGRAPHER |o--o{ PHOTO : fotografa
+    PHOTO }o--o{ TAG : classificada
+    PHOTO ||--o{ FACE : contem
+    PHOTO {
+        string image_name
+        datetime taken_at
+        jsonb metadata "GIN index"
     }
-  ]
-}
+    FACE {
+        int face_index
+        jsonb bbox
+        vector embedding "128 dims, pgvector"
+    }
 ```
 
-The application does not need S3 write permissions. The default Elastic
-Beanstalk service role and EC2 instance profile are separate roles; attach
-this policy to the **EC2 instance profile role**, not the service role.
+| Paradigma | Onde | Uso |
+|---|---|---|
+| Relacional (ACID) | `Event`, `Session`, `Photographer`, `Tag`, `Photo`, `Face` | 5 chaves estrangeiras e 1 ManyToMany (`Photo.tags`) |
+| Documento (JSONB) | `Photo.metadata` com índice GIN `photo_metadata_gin` | câmera, ISO, lente, atributos livres; filtro `?metadata__camera__make=Canon` |
+| Vetorial (pgvector) | `Face.embedding` (128 dimensões) | busca por similaridade (distância L2) em `POST /api/search/` |
 
-### 5. Set production environment properties
+## API
 
-Generate a secret locally without printing it to source control:
+Leitura é pública; escrita exige login (sessão do Admin, `/api-auth/login/` ou HTTP Basic).
 
-```powershell
-$secret = & ".\.venv\Scripts\python.exe" -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
-eb setenv `
-  DJANGO_SECRET_KEY="$secret" `
-  DJANGO_DEBUG=false `
-  DJANGO_ALLOWED_HOSTS="YOUR_ENV.elasticbeanstalk.com" `
-  DJANGO_CSRF_TRUSTED_ORIGINS="https://YOUR_ENV.elasticbeanstalk.com" `
-  DATABASE_URL="postgresql://DB_USER:DB_PASSWORD@RDS_ENDPOINT:5432/photomatch" `
-  S3_BUCKET="YOUR_PHOTO_BUCKET" `
-  S3_IMAGE_PREFIX="dataset/" `
-  LOCAL_PHOTO_DB_ENABLED=false `
-  DJANGO_SECURE_SSL_REDIRECT=false `
-  DJANGO_HSTS_SECONDS=0
-```
+| Método | Rota | Descrição |
+|---|---|---|
+| GET/POST | `/api/events/` | eventos com sessões aninhadas e contagem de fotos |
+| GET/PUT/PATCH/DELETE | `/api/events/<slug>/` | |
+| CRUD | `/api/sessions/` (`?event=<slug>`), `/api/photographers/`, `/api/tags/`, `/api/faces/` (`?photo=<id>`) | |
+| CRUD | `/api/photos/` | fotos com tags, fotógrafo e rostos aninhados |
+| GET | `/api/photos/?metadata__camera__make=Canon&metadata__iso=800` | filtro em chaves JSONB (usa o índice GIN, operador `@>`) |
+| GET | `/api/photos/?has_metadata=lens_mm`, `?tag=palestra`, `?event=demo-2026` | outros filtros |
+| POST | `/api/photos/ingest/` | **transação**: cria foto, tags e rostos em `transaction.atomic()` |
+| POST | `/api/search/` | **busca vetorial**: `{"embedding": [128 valores]}` ou `image` (multipart) |
+| GET | `/health` | healthcheck |
 
-Prefer setting `DATABASE_URL` through a secrets-aware process rather than
-putting a real password in a terminal command. If your password contains
-special URL characters, URL-encode it.
+### Regra de negócio transacional (`/api/photos/ingest/`)
 
-### 6. Deploy and run migrations
+Grava em `gallery_photo`, `gallery_tag`, `gallery_photo_tags` e `gallery_face`. Se qualquer regra falhar, **tudo é desfeito** (rollback) e a API responde 400:
 
-```powershell
-eb deploy photomatch-prod
-eb health photomatch-prod
-eb open photomatch-prod
-```
-
-Run the production checks and database migrations in the deployed
-environment. Use an approved SSH/SSM path to the instance, then:
+1. a sessão pertence ao mesmo evento;
+2. `taken_at` está dentro das datas do evento;
+3. a foto tem de 1 a 50 rostos;
+4. cada embedding tem exatamente 128 valores;
+5. `face_index` não se repete na foto.
 
 ```bash
-python manage.py check --deploy
-python manage.py migrate --noinput
+curl -u admin:<senha> -H "Content-Type: application/json" -X POST http://localhost:8000/api/photos/ingest/ -d '{
+  "event": "demo-2026", "image_name": "teste_001.jpg", "taken_at": "2026-11-10T10:00:00-03:00",
+  "metadata": {"camera": {"make": "Canon"}, "iso": 800}, "tags": ["palestra"],
+  "faces": [{"face_index": 0, "bbox": {}, "embedding": [0.1, 0.2]}]
+}'
+# -> 400 {"detail": "Cada embedding precisa ter 128 valores (recebido: 2)."}  e nenhuma linha gravada
 ```
 
-If the environment is private, run these commands from a maintenance shell
-with the same container image and environment variables. Do not run
-migrations concurrently from multiple instances.
+## Executar localmente (Docker)
 
-### 7. Import the face database into RDS
+Pré-requisito: Docker Desktop.
 
-The PKL file is not deployed with the web container. From a machine that can
-reach the RDS endpoint, run:
-
-```powershell
-python manage.py import_pkl_to_rds --glob "C:\path\to\THF_face_database.pkl"
+```bash
+cp .env.example .env        # troque todos os valores "change-me"
+docker compose up -d --build
+docker compose logs -f web  # migrate, collectstatic, superusuário e dados demo
 ```
 
-Verify the import:
+- API: http://localhost:8000/api/
+- Admin: http://localhost:8000/admin/ (usuário e senha do `.env`)
+- Busca facial (interface da AP1): http://localhost:8000/
 
-```sql
-SELECT COUNT(*) FROM search_faceembedding;
+O primeiro build compila o `dlib` e leva vários minutos.
+
+### Testes
+
+Os testes precisam de PostgreSQL com pgvector (JSONB, GIN e vetores não existem no SQLite):
+
+```bash
+docker compose exec web python manage.py test gallery search
 ```
 
-For a large import, use a controlled one-off migration job rather than
-running the import during every web deployment.
+Os 21 testes cobrem: transação com sucesso e quatro casos de rollback, filtros JSONB, existência do índice GIN, CRUD, permissão de escrita, busca vetorial, busca limitada ao evento escolhido, lista de eventos da página, proteção contra caminhos inválidos de foto, importação e o seed.
 
-### 8. Verify the live service
+### Dados de exemplo
 
-Check all of the following before sharing the QR code:
+`SEED_DEMO=true` no `.env` cria, a cada inicialização e sem duplicar, o evento `demo-2026` com 3 sessões, 2 fotógrafos e 24 fotos com rostos sintéticos. Esse evento fica disponível na API, mas não aparece na página de busca (`published=False`). Para recriar: `docker compose exec web python manage.py seed_demo --reset`.
 
-1. `https://YOUR_HOST/health` returns `{"status":"ok"}`.
-2. The home page loads without a 500 response.
-3. A test selfie returns matches or the expected no-match state.
-4. Result images load from presigned S3 URLs.
-5. S3 objects are still private and direct unauthenticated object URLs fail.
-6. RDS accepts connections only from the Beanstalk security group.
-7. Logs show no database password, selfie bytes, or unexpected S3 errors.
+### Eventos reais
 
-Useful commands:
+A página inicial lista os eventos publicados que têm rostos indexados. O participante escolhe o evento e a busca por selfie acontece só nas fotos dele. Cada evento guarda as fotos em uma pasta própria (`--prefix`), usada tanto no S3 (`dataset/<pasta>/`, `thumb/<pasta>/`) quanto nas pastas locais.
 
-```powershell
-eb logs --all
-eb status
-eb events
+Para importar um evento a partir dos embeddings gerados pelo `face_engine` (arquivo `.pkl`, fora do Git):
+
+```bash
+docker compose exec web python manage.py import_pkl \
+  --event sbrt-2025 --name "SBrT 2025" --starts-on 2025-09-29 --ends-on 2025-10-02 \
+  --prefix sbrt2025/ --glob /photos/pkl/sbrt2025.pkl --images-dir /photos/dataset/sbrt2025
 ```
 
-### 9. Add HTTPS and a custom domain
+O comando cria o evento se ele não existir, cria as fotos e os rostos, e lê o EXIF de cada foto (data, câmera, lente, ISO) para preencher `taken_at` e o JSONB `metadata`. Um evento pode ser ocultado da página pelo Admin (campo "publicado").
 
-For a real event URL, request an ACM certificate in the region required by
-your load balancer, validate the domain, attach the certificate to the
-Beanstalk load balancer's HTTPS listener, and redirect HTTP to HTTPS. Add
-both the custom hostname to `DJANGO_ALLOWED_HOSTS` and its full HTTPS origin
-to `DJANGO_CSRF_TRUSTED_ORIGINS`.
-After HTTPS is working, set `DJANGO_SECURE_SSL_REDIRECT=true` and
-`DJANGO_HSTS_SECONDS=31536000`, then redeploy.
+Para ver as fotos localmente, copie `docker-compose.override.example.yml` para `docker-compose.override.yml` (ignorado pelo Git) e aponte as pastas de cada evento. Na EC2 as fotos vêm do bucket S3 (`S3_BUCKET`).
 
-### Official references
+## Deploy na EC2: passo a passo
 
-- [Elastic Beanstalk Docker environments](https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create_deploy_docker.html)
-- [Elastic Beanstalk instance profiles](https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/iam-instanceprofile.html)
-- [RDS PostgreSQL extensions](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.PostgreSQL.CommonDBATasks.Extensions.html)
-- [S3 IAM policy actions](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-with-s3-actions.html)
-- [Django deployment checklist](https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/)
+O roteiro completo, com custo e rollback, está em [`docs/Transicao/ativ_deploy.md`](docs/Transicao/ativ_deploy.md).
+
+### 1. Instância e Security Group
+
+1. Ubuntu Server 24.04 LTS, `t3.medium` (o build do dlib precisa de ~4 GB de RAM; ver `docs/Elaboracao/dim_comp.md`), disco gp3 de 20 GB.
+2. Security Group com entrada **somente** para:
+   - TCP 22 (SSH) a partir do seu IP;
+   - TCP 8000 (API) a partir de `0.0.0.0/0`.
+
+   A porta 5432 **não** é liberada.
+3. Elastic IP associado à instância, para o IP não mudar.
+
+### 2. Preparar a instância
+
+```bash
+ssh -i photomatch.pem ubuntu@<IP-PUBLICO>
+git clone https://github.com/Projetos-de-Extensao/PC_CDIA_26.2_8001_II.git
+sh PC_CDIA_26.2_8001_II/scripts/ec2-setup.sh   # Docker, Compose e Git; swap se RAM < 3 GB
+exit                                           # reconecte para aplicar o grupo docker
+```
+
+### 3. Primeiro deploy
+
+```bash
+cd PC_CDIA_26.2_8001_II
+cp .env.example .env && nano .env   # segredos reais só na EC2
+sh scripts/deploy.sh                # git pull, up -d --build e espera o healthcheck
+```
+
+No `.env`, `DJANGO_ALLOWED_HOSTS` e `DJANGO_CSRF_TRUSTED_ORIGINS` precisam do IP público.
+
+### 4. Fluxo de atualização (Windows → GitHub → EC2)
+
+```bash
+# no Windows
+git add . && git commit -m "..." && git push
+# na EC2
+cd PC_CDIA_26.2_8001_II && sh scripts/deploy.sh
+```
+
+`migrate` e `collectstatic` rodam no `docker/entrypoint.sh` a cada inicialização do container.
+
+### 5. Prova de persistência
+
+```bash
+docker compose exec db psql -U photomatch -d photomatch -c "SELECT count(*) FROM gallery_photo;"
+docker compose down          # sem -v: o volume pgdata é mantido
+docker compose up -d
+docker compose exec db psql -U photomatch -d photomatch -c "SELECT count(*) FROM gallery_photo;"
+```
+
+A contagem é a mesma antes e depois. `docker compose down -v` apagaria o volume e não deve ser usado.
+
+### 6. Backup e restauração
+
+```bash
+sh scripts/backup.sh                                   # pg_dump -Fc em ~/backups, retenção de 7 dias
+sh scripts/restore.sh ~/backups/photomatch_<data>.dump # pg_restore --clean
+```
+
+Agendamento diário (`crontab -e`):
+
+```
+0 3 * * * cd /home/ubuntu/PC_CDIA_26.2_8001_II && sh scripts/backup.sh >> /home/ubuntu/backup.log 2>&1
+```
+
+Com `BACKUP_S3_URI=s3://<bucket>/backups/` o script também copia o arquivo para o S3.
+
+### Scripts
+
+| Script | Função |
+|---|---|
+| `scripts/ec2-setup.sh` | instala Docker, Compose e Git na EC2; cria swap se a RAM for menor que 3 GB |
+| `scripts/deploy.sh` | `git pull`, `docker compose up -d --build`, espera o container ficar `healthy` |
+| `scripts/backup.sh` | `pg_dump -Fc`, retenção local e cópia opcional no S3 |
+| `scripts/restore.sh` | restaura um backup no container `db` |
+
+## Evidências do deploy
+
+Salve as capturas em `docs/assets/evidencias/` e referencie-as aqui:
+
+- [ ] `docker ps` na EC2
+- [ ] `docker compose logs web` (migrações e Gunicorn)
+- [ ] `/api/` acessada pelo IP público
+- [ ] Django Admin logado
+- [ ] `psql` listando `gallery_photo` e `gallery_face`
+- [ ] contagem igual antes e depois de `down`/`up`
+- [ ] Security Group com 22 e 8000
+
+## Segurança
+
+- `.env` está no `.gitignore`; só `.env.example`, sem senhas reais, é versionado.
+- Selfies enviadas para busca são processadas em memória e não são gravadas.
+- As fotos do evento ficam em bucket S3 privado; a aplicação gera URLs pré-assinadas de curta duração.
+
+## Histórico
+
+- **AP1:** Django + Gunicorn em um container no Elastic Beanstalk, RDS PostgreSQL com pgvector, S3 e CloudFront. O passo a passo antigo está no histórico do Git.
+- **AP2:** EC2 + Docker Compose, Postgres em container com volume, API DRF multimodelo, testes e documentação RUP.
